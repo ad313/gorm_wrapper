@@ -3,7 +3,6 @@ package gormWapper
 import (
 	"errors"
 	"fmt"
-	"github.com/ad313/gorm_wrapper/ref"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 	"reflect"
@@ -36,7 +35,7 @@ type GormTableResult[T interface{}] struct {
 
 // BuildGormTable 获取
 func BuildGormTable[T interface{}]() *GormTableResult[T] {
-	modelType := ref.GetPath[T]()
+	modelType := GetPath[T]()
 	if model, ok := tableCache.Load(modelType); ok {
 		m, isReal := model.(*TableInfo[T])
 		if isReal {
@@ -45,7 +44,7 @@ func BuildGormTable[T interface{}]() *GormTableResult[T] {
 	}
 
 	//验证 schema.Tabler
-	t, table, ok := ref.IsType[T, schema.Tabler]()
+	t, table, ok := IsType[T, schema.Tabler]()
 	if !ok {
 		return &GormTableResult[T]{Error: errors.New("T 必须实现 schema.Tabler")}
 	}
@@ -90,7 +89,7 @@ func GetTableColumn(column any) string {
 
 // GetTableSchema 获取表元数据
 func GetTableSchema(table schema.Tabler) *TableSchema {
-	modelType := ref.GetPathByValue(table)
+	modelType := GetPathByValue(table)
 	if model, ok := tableSchemaCache.Load(modelType); ok {
 		m, isReal := model.(*TableSchema)
 		if isReal {
@@ -146,7 +145,7 @@ func getColumnNameMap(model any) (map[uintptr]string, string) {
 
 func isGormDeletedAt(field reflect.StructField, valueOf reflect.Value) bool {
 	//判断软删除字段
-	_, ok := ref.IsTypeByValue[gorm.DeletedAt](valueOf.FieldByName(field.Name).Interface())
+	_, ok := IsTypeByValue[gorm.DeletedAt](valueOf.FieldByName(field.Name).Interface())
 	return ok
 }
 

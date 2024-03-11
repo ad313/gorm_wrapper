@@ -1,4 +1,4 @@
-package ref
+package gormWapper
 
 import (
 	"gorm.io/gorm/schema"

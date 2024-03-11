@@ -3,7 +3,6 @@ package gormWapper
 import (
 	"context"
 	"errors"
-	"github.com/ad313/gorm_wrapper/ref"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 	"strings"
@@ -53,7 +52,7 @@ func BuildOrmWrapper[T any](ctx context.Context, db ...*gorm.DB) *OrmWrapper[T] 
 	wrapper.SetDb(ctx, db...)
 
 	if wrapper.Error == nil {
-		model, ok := ref.IsTypeByValue[schema.Tabler](*(wrapper.Model))
+		model, ok := IsTypeByValue[schema.Tabler](*(wrapper.Model))
 		if ok {
 			wrapper.builder.TableName = (*model).TableName()
 			wrapper.table = *model
