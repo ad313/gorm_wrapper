@@ -32,28 +32,31 @@ type ormWrapperBuilder[T interface{}] struct {
 	TableName  string //表名
 	TableAlias string //表别名
 
-	ctx       context.Context
-	DbContext *gorm.DB
-	isOuterDb bool //是否外部传入db
+	ctx        context.Context //context
+	DbContext  *gorm.DB        //操作后的db
+	_DbContext *gorm.DB        //最初始的db
+	isOuterDb  bool            //是否外部传入db
 
-	where          [][]any          //普通条件
-	WhereCondition []WhereCondition //condition条件
-	leftJoin       []*leftJoinModel //leftJoin 集合
-	selectColumns  []string         //select 字段集合
-	groupByColumns []string         //group by 字段集合
-	orderByColumns []string         //order by 字段集合
+	where           [][]any          //普通条件
+	WhereCondition  []WhereCondition //condition条件
+	HavingCondition []WhereCondition //having条件
+	joinModels      []*joinModel     //leftJoin 集合
+	selectColumns   []string         //select 字段集合
+	groupByColumns  []string         //group by 字段集合
+	orderByColumns  []string         //order by 字段集合
 
 	isUnscoped bool //和gorm一样，忽略软删除字段
 }
 
-// leftJoinModel 左连接条件，会自动加上软删除字段
-type leftJoinModel struct {
+// joinModel 连表条件，会自动加上软删除字段
+type joinModel struct {
 	Table     schema.Tabler //连接表，右表
 	tableName string        //右表表名
 	Alias     string        //右表表别名
 	Left      string        //左表字段
 	Right     string        //右表字段
 	ext       string        //扩展字段，比如有软删除字段，这里加上软删除sql
+	key       string        //left join;inner join
 }
 
 func (o *ormWrapperBuilder[T]) addWhere(query interface{}, args []interface{}) {
@@ -73,7 +76,24 @@ func (o *ormWrapperBuilder[T]) addWhereWithWhereCondition(condition WhereConditi
 	if o.WhereCondition == nil {
 		o.WhereCondition = make([]WhereCondition, 0)
 	}
+
+	if condition == nil {
+		o.wrapper.Error = errors.New("where condition 不能为空")
+	}
+
 	o.WhereCondition = append(o.WhereCondition, condition)
+}
+
+func (o *ormWrapperBuilder[T]) addHavingWithWhereCondition(condition WhereCondition) {
+	if o.HavingCondition == nil {
+		o.HavingCondition = make([]WhereCondition, 0)
+	}
+
+	if condition == nil {
+		o.wrapper.Error = errors.New("having condition 不能为空")
+	}
+
+	o.HavingCondition = append(o.HavingCondition, condition)
 }
 
 func (o *ormWrapperBuilder[T]) mergeColumnName(column string, columnAlias string, tableAlias string) string {
@@ -94,7 +114,16 @@ func (o *ormWrapperBuilder[T]) mergeColumnNameWithFunc(column string, columnAlia
 		sql += " as " + getSqlSm(_dbType) + columnAlias + getSqlSm(_dbType)
 	}
 
-	return column
+	return sql
+}
+
+func (o *ormWrapperBuilder[T]) getPrimaryKey() (string, error) {
+	if o.wrapper.tableInfo.PrimaryKeyName == "" {
+		o.wrapper.Error = errors.New(fmt.Sprintf("表 %v 没有主键，操作失败", o.wrapper.tableInfo.Name))
+		return "", o.wrapper.Error
+	}
+
+	return o.wrapper.tableInfo.PrimaryKeyName, nil
 }
 
 // 设置主表，针对没有主动设置表别名，这里自动加上表名称做表别名
@@ -102,7 +131,7 @@ func (o *ormWrapperBuilder[T]) buildModel() {
 	//没有手动设置表别名，这里判断是否需要加：left join、exists
 	if o.TableAlias == "" {
 		//leftJoin
-		if len(o.leftJoin) > 0 {
+		if len(o.joinModels) > 0 {
 			o.TableAlias = o.TableName
 		} else {
 			//exists
@@ -155,10 +184,11 @@ func (o *ormWrapperBuilder[T]) buildWhere() {
 }
 
 func (o *ormWrapperBuilder[T]) buildLeftJoin() {
-	if len(o.leftJoin) > 0 {
-		for _, join := range o.leftJoin {
+	if len(o.joinModels) > 0 {
+		for _, join := range o.joinModels {
 			o.DbContext = o.DbContext.
-				Joins(fmt.Sprintf("left join %v as %v on %v = %v%v",
+				Joins(fmt.Sprintf("%v %v as %v on %v = %v%v",
+					join.key,
 					formatSqlName(join.tableName, _dbType),
 					formatSqlName(join.Alias, _dbType),
 					join.Left,
@@ -193,6 +223,20 @@ func (o *ormWrapperBuilder[T]) buildGroupBy() {
 	}
 }
 
+func (o *ormWrapperBuilder[T]) buildHaving() {
+	if len(o.HavingCondition) > 0 {
+		for _, condition := range o.HavingCondition {
+			sql, param, err := condition.BuildSql(_dbType)
+			if err != nil {
+				o.wrapper.Error = err
+				return
+			}
+
+			o.DbContext = o.DbContext.Having(sql, param...)
+		}
+	}
+}
+
 // Build 创建 gorm sql
 func (o *ormWrapperBuilder[T]) Build() *gorm.DB {
 	o.buildWhere()
@@ -200,6 +244,7 @@ func (o *ormWrapperBuilder[T]) Build() *gorm.DB {
 	o.buildLeftJoin()
 	o.buildOrderBy()
 	o.buildGroupBy()
+	o.buildHaving()
 	return o.DbContext
 }
 

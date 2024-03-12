@@ -16,9 +16,16 @@ func ResolveTableColumnName(column any, dbType string) string {
 		if name == "" {
 			return ""
 		}
+
 		return getSqlSm(dbType) + name + getSqlSm(dbType)
 	} else {
 		if str, ok := column.(string); ok && str != "" {
+			if str == "*" {
+				return "*"
+			}
+			if str == "1" {
+				return "1"
+			}
 			return getSqlSm(dbType) + str + getSqlSm(dbType)
 		} else {
 			return ""

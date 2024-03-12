@@ -2,6 +2,7 @@ package orm
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/uuid"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -122,7 +123,6 @@ func Test_InitData(t *testing.T) {
 	//	t.Errorf("DeleteById faild")
 	//}
 	//
-	//
 	//err = table3.GetDbContext(context.Background()).DeleteById(idList...)
 	//if err != nil {
 	//	t.Errorf("DeleteById faild")
@@ -130,60 +130,105 @@ func Test_InitData(t *testing.T) {
 
 }
 
-//func Test_Wrapper(t *testing.T) {
-//
-//	sql, err := table3.GetDbContext(context.Background()).
-//		SetTableAlias("a").
-//		//SelectColumnOriginal("a.*", "").
-//		//SelectColumnOriginal("count(*)", "aaa").
-//		WhereCondition(&Condition{
-//			Column:         &table3.Id,
-//			CompareSymbols: Eq,
-//			Arg:            "123",
-//			TableAlias:     "a",
-//		}).
-//		WhereByColumn(&table3.Name, Like, "abc", "a").
-//		WhereByColumn(&table3.Name, StartWith, "abc", "b").
-//		WhereByColumn(&table3.Name, EndWith, "abc", "c").
-//		WhereCondition(&ExistsCondition{
-//			Table: table3,
-//			ConditionBuilder: NewAndConditionBuilder(&TableCondition{
-//				InnerColumn:    &table3.Id,
-//				OuterAlias:     "a",
-//				OuterColumn:    &table3.Id,
-//				CompareSymbols: Eq,
-//			}, &TableCondition{
-//				InnerColumn:    &table3.Name,
-//				OuterAlias:     "a",
-//				OuterColumn:    &table3.Name,
-//				CompareSymbols: NotEq,
-//			}, &Condition{
-//				TableAlias:     "",
-//				Column:         &table3.Age,
-//				CompareSymbols: Gt,
-//				Arg:            18,
-//			}),
-//			IsNotExists: true,
-//			Func:        "",
-//		}).
-//		LeftJoin(table4, "b", &table3.Id, &table4.Id).
-//		LeftJoin(table5, "c", &table4.Name, &table5.Name).
-//		//Unscoped().
-//		ToSql()
-//
-//	if err != nil {
-//		fmt.Println(err)
-//	}
-//
-//	fmt.Println(sql)
-//	if err != nil {
-//		t.Errorf("Test_Wrapper faild")
-//	}
-//
-//	fmt.Println(sql)
-//
-//	table3.GetDbContext(context.Background()).
-//		LeftJoin(table4, "b", &table3.Id, &table4.Id).
-//		ToPagerList(&Pager{Page: 0, PageSize: 0})
-//
-//}
+func Test_Wrapper(t *testing.T) {
+
+	var dbContext = table3.GetDbContext(context.Background()).WhereCondition(&Condition{
+		TableAlias:     "",
+		Column:         &table3.Age,
+		CompareSymbols: Gt,
+		Arg:            1,
+	})
+
+	fmt.Println(dbContext.ToSql())
+
+	list, err := dbContext.ToList()
+	if err != nil {
+		panic(err)
+	}
+	if len(list) == 0 {
+		t.Errorf("ToList faild")
+	}
+
+	//having
+	dbContext = table3.GetDbContext(context.Background()).WhereCondition(&Condition{
+		TableAlias:     "",
+		Column:         &table3.Age,
+		CompareSymbols: Gt,
+		Arg:            1,
+	}).Select(&table3.Name).
+		SelectWithFunc("1", "aaa", Count).
+		GroupBy(&table3.Name).
+		Having(&Condition{
+			Column:         "1",
+			CompareSymbols: Gt,
+			Arg:            0,
+			Func:           "Count",
+		})
+
+	fmt.Println(dbContext.ToSql())
+
+	//join
+	dbContext = table3.GetDbContext(context.Background()).WhereCondition(&Condition{
+		TableAlias:     "b",
+		Column:         &table3.Age,
+		CompareSymbols: Gt,
+		Arg:            1,
+	}).InnerJoin(table3, "b", &table3.Id, &table3.Id)
+
+	fmt.Println(dbContext.ToSql())
+
+	//sql, err := table3.GetDbContext(context.Background()).
+	//	SetTableAlias("a").
+	//	//SelectColumnOriginal("a.*", "").
+	//	//SelectColumnOriginal("count(*)", "aaa").
+	//	WhereCondition(&Condition{
+	//		Column:         &table3.Id,
+	//		CompareSymbols: Eq,
+	//		Arg:            "123",
+	//		TableAlias:     "a",
+	//	}).
+	//	WhereByColumn(&table3.Name, Like, "abc", "a").
+	//	WhereByColumn(&table3.Name, StartWith, "abc", "b").
+	//	WhereByColumn(&table3.Name, EndWith, "abc", "c").
+	//	WhereCondition(&ExistsCondition{
+	//		Table: table3,
+	//		ConditionBuilder: NewAndConditionBuilder(&TableCondition{
+	//			InnerColumn:    &table3.Id,
+	//			OuterAlias:     "a",
+	//			OuterColumn:    &table3.Id,
+	//			CompareSymbols: Eq,
+	//		}, &TableCondition{
+	//			InnerColumn:    &table3.Name,
+	//			OuterAlias:     "a",
+	//			OuterColumn:    &table3.Name,
+	//			CompareSymbols: NotEq,
+	//		}, &Condition{
+	//			TableAlias:     "",
+	//			Column:         &table3.Age,
+	//			CompareSymbols: Gt,
+	//			Arg:            18,
+	//		}),
+	//		IsNotExists: true,
+	//		Func:        "",
+	//	}).
+	//	LeftJoin(table4, "b", &table3.Id, &table4.Id).
+	//	LeftJoin(table5, "c", &table4.Name, &table5.Name).
+	//	//Unscoped().
+	//	ToSql()
+	//
+	//if err != nil {
+	//	fmt.Println(err)
+	//}
+	//
+	//fmt.Println(sql)
+	//if err != nil {
+	//	t.Errorf("Test_Wrapper faild")
+	//}
+	//
+	//fmt.Println(sql)
+
+	//table3.GetDbContext(context.Background()).
+	//	LeftJoin(table4, "b", &table3.Id, &table4.Id).
+	//	ToPagerList(&Pager{Page: 0, PageSize: 0})
+
+}

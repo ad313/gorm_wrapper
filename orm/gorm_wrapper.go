@@ -47,7 +47,7 @@ func BuildOrmWrapper[T any](ctx context.Context, db ...*gorm.DB) *OrmWrapper[T] 
 	wrapper.builder = &ormWrapperBuilder[T]{
 		wrapper:        wrapper,
 		where:          make([][]any, 0),
-		leftJoin:       make([]*leftJoinModel, 0),
+		joinModels:     make([]*joinModel, 0),
 		selectColumns:  make([]string, 0),
 		groupByColumns: make([]string, 0),
 		orderByColumns: make([]string, 0)}
@@ -78,12 +78,18 @@ func (o *OrmWrapper[T]) SetDb(ctx context.Context, db ...*gorm.DB) *OrmWrapper[T
 	}
 
 	o.builder.ctx = ctx
+	o.builder._DbContext = o.builder.DbContext
 
 	if o.builder.DbContext == nil {
 		o.Error = errors.New("请先初始化db，调用 Init 方法")
 	}
 
 	return o
+}
+
+// GetNewDb 获取新的db
+func (o *OrmWrapper[T]) GetNewDb() *gorm.DB {
+	return o.builder._DbContext
 }
 
 // SetTableAlias 指定主表表别名，如果不指定，当有 left join 或者 exists时，默认是表名称
@@ -157,11 +163,45 @@ func (o *OrmWrapper[T]) WhereByColumnIf(do bool, column any, compareSymbols stri
 
 // LeftJoin 左连表
 func (o *OrmWrapper[T]) LeftJoin(table schema.Tabler, alias string, leftColumn any, rightColumn any) *OrmWrapper[T] {
-	if o.builder.leftJoin == nil {
-		o.builder.leftJoin = make([]*leftJoinModel, 0)
+	return o.Join(table, alias, leftColumn, rightColumn, "Left Join")
+}
+
+// LeftJoinIf 左连表
+func (o *OrmWrapper[T]) LeftJoinIf(do bool, table schema.Tabler, alias string, leftColumn any, rightColumn any) *OrmWrapper[T] {
+	if do {
+		return o.LeftJoin(table, alias, leftColumn, rightColumn)
+	}
+
+	return o
+}
+
+// InnerJoin 内连表
+func (o *OrmWrapper[T]) InnerJoin(table schema.Tabler, alias string, leftColumn any, rightColumn any) *OrmWrapper[T] {
+	return o.Join(table, alias, leftColumn, rightColumn, "Inner Join")
+}
+
+// InnerJoinIf 内连表
+func (o *OrmWrapper[T]) InnerJoinIf(do bool, table schema.Tabler, alias string, leftColumn any, rightColumn any) *OrmWrapper[T] {
+	if do {
+		return o.InnerJoin(table, alias, leftColumn, rightColumn)
+	}
+
+	return o
+}
+
+// Join 内连表
+func (o *OrmWrapper[T]) Join(table schema.Tabler, alias string, leftColumn any, rightColumn any, key string) *OrmWrapper[T] {
+	if o.builder.joinModels == nil {
+		o.builder.joinModels = make([]*joinModel, 0)
+	}
+
+	if key == "" {
+		o.Error = errors.New("join 连表参数不正确")
+		return o
 	}
 
 	if table == nil || leftColumn == nil || rightColumn == nil {
+		o.Error = errors.New("join 连表参数不正确")
 		return o
 	}
 
@@ -183,21 +223,22 @@ func (o *OrmWrapper[T]) LeftJoin(table schema.Tabler, alias string, leftColumn a
 
 	var leftTable schema.Tabler
 	var leftTableName string
-	if len(o.builder.leftJoin) == 0 {
+	if len(o.builder.joinModels) == 0 {
 		leftTable = o.table
 		leftTableName = chooseTrueValue(o.builder.TableAlias != "", o.builder.TableAlias, o.builder.TableName)
 	} else {
-		var lastLeftJoin = o.builder.leftJoin[len(o.builder.leftJoin)-1]
+		var lastLeftJoin = o.builder.joinModels[len(o.builder.joinModels)-1]
 		leftTableName = lastLeftJoin.Alias
 		leftTable = lastLeftJoin.Table
 	}
 
-	var joinModel = &leftJoinModel{
+	var join = &joinModel{
 		Table:     table,
 		tableName: table.TableName(),
 		Alias:     alias,
 		Left:      formatSqlName(leftTableName, _dbType) + "." + left,
 		Right:     formatSqlName(alias, _dbType) + "." + right,
+		key:       key,
 	}
 
 	//软删除
@@ -215,27 +256,98 @@ func (o *OrmWrapper[T]) LeftJoin(table schema.Tabler, alias string, leftColumn a
 		}
 
 		if leftSoftDel != "" {
-			joinModel.ext = " AND " + leftSoftDel
+			join.ext = " AND " + leftSoftDel
 		}
 
 		if rightSoftDel != "" {
-			joinModel.ext += " AND " + rightSoftDel
+			join.ext += " AND " + rightSoftDel
 		}
 	}
 
-	o.builder.leftJoin = append(o.builder.leftJoin, joinModel)
+	o.builder.joinModels = append(o.builder.joinModels, join)
 
 	return o
 }
 
-// LeftJoinIf 左连表
-func (o *OrmWrapper[T]) LeftJoinIf(do bool, table schema.Tabler, alias string, leftColumn any, rightColumn any) *OrmWrapper[T] {
-	if do {
-		return o.LeftJoin(table, alias, leftColumn, rightColumn)
-	}
-
-	return o
-}
+//// Join2 内连表
+//func (o *OrmWrapper[T]) Join2(table *gorm.DB, alias string, leftColumn any, rightColumn any, key string) *OrmWrapper[T] {
+//	if o.builder.joinModels == nil {
+//		o.builder.joinModels = make([]*joinModel, 0)
+//	}
+//
+//	if key == "" {
+//		o.Error = errors.New("join 连表参数不正确")
+//		return o
+//	}
+//
+//	if table == nil || leftColumn == nil || rightColumn == nil {
+//		o.Error = errors.New("join 连表参数不正确")
+//		return o
+//	}
+//
+//	left, err := resolveColumnName(leftColumn, _dbType)
+//	if err != nil || left == "" {
+//		o.Error = errors.New("LeftJoin 未获取到左边字段")
+//		return o
+//	}
+//
+//	right, err := resolveColumnName(rightColumn, _dbType)
+//	if err != nil || right == "" {
+//		o.Error = errors.New("LeftJoin 未获取到右边字段")
+//		return o
+//	}
+//
+//	if alias == "" {
+//		alias = table.TableName()
+//	}
+//
+//	var leftTable schema.Tabler
+//	var leftTableName string
+//	if len(o.builder.joinModels) == 0 {
+//		leftTable = o.table
+//		leftTableName = chooseTrueValue(o.builder.TableAlias != "", o.builder.TableAlias, o.builder.TableName)
+//	} else {
+//		var lastLeftJoin = o.builder.joinModels[len(o.builder.joinModels)-1]
+//		leftTableName = lastLeftJoin.Alias
+//		leftTable = lastLeftJoin.Table
+//	}
+//
+//	var join = &joinModel{
+//		Table:     table,
+//		tableName: table.TableName(),
+//		Alias:     alias,
+//		Left:      formatSqlName(leftTableName, _dbType) + "." + left,
+//		Right:     formatSqlName(alias, _dbType) + "." + right,
+//		key:       key,
+//	}
+//
+//	//软删除
+//	if !o.builder.isUnscoped {
+//		leftSoftDel, err := getTableSoftDeleteColumnSql(leftTable, leftTableName, _dbType)
+//		if err != nil {
+//			o.Error = err
+//			return o
+//		}
+//
+//		rightSoftDel, err := getTableSoftDeleteColumnSql(table, alias, _dbType)
+//		if err != nil {
+//			o.Error = err
+//			return o
+//		}
+//
+//		if leftSoftDel != "" {
+//			join.ext = " AND " + leftSoftDel
+//		}
+//
+//		if rightSoftDel != "" {
+//			join.ext += " AND " + rightSoftDel
+//		}
+//	}
+//
+//	o.builder.joinModels = append(o.builder.joinModels, join)
+//
+//	return o
+//}
 
 // Select 查询主表字段
 func (o *OrmWrapper[T]) Select(selectColumns ...interface{}) *OrmWrapper[T] {
@@ -244,7 +356,7 @@ func (o *OrmWrapper[T]) Select(selectColumns ...interface{}) *OrmWrapper[T] {
 	}
 
 	//判断是否有 leftJoin，如果有则给字段名加上主表别名
-	var table = chooseTrueValue(len(o.builder.leftJoin) == 0, "", o.builder.TableAlias)
+	var table = chooseTrueValue(len(o.builder.joinModels) == 0, "", o.builder.TableAlias)
 
 	return o.SelectWithTableAlias(table, selectColumns...)
 }
@@ -294,8 +406,8 @@ func (o *OrmWrapper[T]) SelectColumnOriginal(selectColumn string, columnAlias st
 }
 
 // SelectWithFunc 传入表别名，查询此表下的字段
-func (o *OrmWrapper[T]) SelectWithFunc(selectColumn string, columnAlias string, f string, tableAlias ...string) *OrmWrapper[T] {
-	name, err := resolveColumnName(selectColumn, _dbType)
+func (o *OrmWrapper[T]) SelectWithFunc(selectColumn interface{}, columnAlias string, f string, tableAlias ...string) *OrmWrapper[T] {
+	name, err := resolveColumnName(selectColumn, "")
 	if err != nil || name == "" {
 		o.Error = errors.New("未获取到字段名称")
 		return o
@@ -321,6 +433,11 @@ func (o *OrmWrapper[T]) GroupBy(column any, tableAlias ...string) *OrmWrapper[T]
 
 	o.builder.groupByColumns = append(o.builder.groupByColumns, name)
 
+	return o
+}
+
+func (o *OrmWrapper[T]) Having(having WhereCondition) *OrmWrapper[T] {
+	o.builder.addHavingWithWhereCondition(having)
 	return o
 }
 
@@ -392,7 +509,7 @@ func (o *OrmWrapper[T]) Count() (int64, error) {
 	var total int64
 
 	//left join 加上 distinct
-	if len(o.builder.leftJoin) > 0 {
+	if len(o.builder.joinModels) > 0 {
 		err = _db.Table("(?) as leftJoinTableWrapper", o.builder.DbContext).Count(&total).Error
 	} else {
 		err = o.builder.DbContext.Count(&total).Error
@@ -505,7 +622,7 @@ func (o *OrmWrapper[T]) ToPagerList(pager *Pager, scan ...func(db *gorm.DB) erro
 	var err error
 
 	//left join 加上 distinct
-	if len(o.builder.leftJoin) > 0 {
+	if len(o.builder.joinModels) > 0 {
 		err = _db.Table("(?) as leftJoinTableWrapper", o.builder.DbContext).Count(&total).Error
 	} else {
 		err = o.builder.DbContext.Count(&total).Error
@@ -641,8 +758,22 @@ func (o *OrmWrapper[T]) GetById(id interface{}) (*T, error) {
 		return nil, o.Error
 	}
 
+	key, err := o.builder.getPrimaryKey()
+	if err != nil {
+		return nil, err
+	}
+
+	sql, _, err := (&Condition{
+		Column:         key,
+		CompareSymbols: Eq,
+		Arg:            id,
+	}).BuildSql(_dbType)
+	if err != nil {
+		return nil, err
+	}
+
 	var result = new(T)
-	var err = o.builder.DbContext.Take(&result, id).Error
+	err = o.GetNewDb().Model(new(T)).Where(sql, id).Take(&result).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
@@ -657,10 +788,22 @@ func (o *OrmWrapper[T]) GetByIds(idList []interface{}) ([]*T, error) {
 		return nil, o.Error
 	}
 
-	//GetTableSchema()
+	key, err := o.builder.getPrimaryKey()
+	if err != nil {
+		return nil, err
+	}
 
-	var result []*T
-	return result, o.builder.DbContext.Find(&result, idList).Error
+	sql, _, err := (&Condition{
+		Column:         key,
+		CompareSymbols: In,
+		Arg:            idList,
+	}).BuildSql(_dbType)
+	if err != nil {
+		return nil, err
+	}
+
+	var result = make([]*T, 0)
+	return result, o.GetNewDb().Model(new(T)).Where(sql, idList).Scan(&result).Error
 }
 
 // Build 创建 gorm sql
@@ -682,4 +825,4 @@ func (o *OrmWrapper[T]) BuildForQuery() *gorm.DB {
 }
 
 //todo https://gorm.io/zh_CN/docs/query.html
-//todo having,INNER JOIN;Joins 一个衍生表
+//todo Joins 一个衍生表
