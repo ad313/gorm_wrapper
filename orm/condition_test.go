@@ -1,9 +1,10 @@
-package gormWapper
+package orm
 
 import (
 	"fmt"
-	"gorm.io/gorm"
 	"testing"
+
+	"gorm.io/gorm"
 )
 
 type conditionTable struct {
@@ -17,7 +18,7 @@ func (t *conditionTable) TableName() string {
 	return "conditionTable"
 }
 
-var condTable = BuildGormTable[conditionTable]().Table.T
+var condTable = BuildOrmTable[conditionTable]().Table.T
 
 var dbType = Dm
 
@@ -152,7 +153,7 @@ func Test_Condition_Like(t *testing.T) {
 	if err != nil {
 		t.Errorf("Test_Condition_Like faild")
 	}
-	if sql != fmt.Sprintf("%v.%v LIKE ?", f("a"), f("id")) {
+	if sql != fmt.Sprintf("%v.%v Like ?", f("a"), f("id")) {
 		t.Errorf(fmt.Sprintf("Test_Condition_Like faild：a：%v", sql))
 	}
 	if len(param) != 1 || param[0] != "%123%" {
@@ -170,7 +171,7 @@ func Test_Condition_Like(t *testing.T) {
 	if err != nil {
 		t.Errorf("Test_Condition_Like faild")
 	}
-	if sql != fmt.Sprintf("%v.%v NOT LIKE ?", f("a"), f("id")) {
+	if sql != fmt.Sprintf("%v.%v NOT Like ?", f("a"), f("id")) {
 		t.Errorf(fmt.Sprintf("Test_Condition_Like faild：a：%v", sql))
 	}
 	if len(param) != 1 || param[0] != "%123%" {
@@ -188,7 +189,7 @@ func Test_Condition_Like(t *testing.T) {
 	if err != nil {
 		t.Errorf("Test_Condition_Like faild")
 	}
-	if sql != fmt.Sprintf("%v.%v LIKE ?", f("a"), f("id")) {
+	if sql != fmt.Sprintf("%v.%v Like ?", f("a"), f("id")) {
 		t.Errorf(fmt.Sprintf("Test_Condition_Like faild：a：%v", sql))
 	}
 	if len(param) != 1 || param[0] != "123%" {
@@ -206,7 +207,7 @@ func Test_Condition_Like(t *testing.T) {
 	if err != nil {
 		t.Errorf("Test_Condition_Like faild")
 	}
-	if sql != fmt.Sprintf("%v.%v LIKE ?", f("a"), f("id")) {
+	if sql != fmt.Sprintf("%v.%v Like ?", f("a"), f("id")) {
 		t.Errorf(fmt.Sprintf("Test_Condition_Like faild：a：%v", sql))
 	}
 	if len(param) != 1 || param[0] != "%123" {

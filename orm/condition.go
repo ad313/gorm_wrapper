@@ -1,4 +1,4 @@
-package gormWapper
+package orm
 
 import (
 	"errors"

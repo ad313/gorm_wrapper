@@ -1,10 +1,11 @@
-package gormWapper
+package orm
 
 import (
 	"errors"
 	"fmt"
-	"gorm.io/gorm/schema"
 	"reflect"
+
+	"gorm.io/gorm/schema"
 )
 
 // ResolveTableColumnName 从缓存获取数据库字段名称：如果不能匹配，则返回 string 值
@@ -68,9 +69,9 @@ func mergeWhereValue(compareSymbols string, value interface{}) interface{} {
 	}
 
 	switch compareSymbols {
-	case "LIKE":
+	case "Like":
 		return "%" + v + "%"
-	case "NOT LIKE":
+	case "NOT Like":
 		return "%" + v + "%"
 	case "STARTWITH":
 		return v + "%"
@@ -89,9 +90,9 @@ func checkParam(compareSymbols string, value interface{}) (interface{}, error) {
 
 	var check = true
 	switch compareSymbols {
-	case "LIKE":
+	case "Like":
 		break
-	case "NOT LIKE":
+	case "NOT Like":
 		break
 	case "STARTWITH":
 		break
@@ -123,14 +124,14 @@ func checkParam(compareSymbols string, value interface{}) (interface{}, error) {
 
 func getCompareSymbols(compareSymbols string) string {
 	switch compareSymbols {
-	case "LIKE":
+	case "Like":
 		return compareSymbols
-	case "NOT LIKE":
+	case "NOT Like":
 		return compareSymbols
 	case "STARTWITH":
-		return "LIKE"
+		return "Like"
 	case "ENDWITH":
-		return "LIKE"
+		return "Like"
 	}
 
 	return compareSymbols
@@ -207,7 +208,7 @@ func mergeNameAndFunc(name, f string) string {
 	return chooseTrueValue(f == "", name, f+"("+name+")")
 }
 
-// ChooseTrueValue 模拟三元表达式，获取值
+// chooseTrueValue 模拟三元表达式，获取值
 func chooseTrueValue[T interface{}](condition bool, trueValue, falseValue T) T {
 	if condition {
 		return trueValue

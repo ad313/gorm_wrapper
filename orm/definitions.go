@@ -1,4 +1,4 @@
-package gormWapper
+package orm
 
 // 定义数据库类型
 const (
@@ -19,8 +19,8 @@ const (
 	LessAndEq = "<="
 	In        = "IN"
 	NotIn     = "NOT IN"
-	Like      = "LIKE"
-	NotLike   = "NOT LIKE"
+	Like      = "Like"
+	NotLike   = "NOT Like"
 	StartWith = "STARTWITH"
 	EndWith   = "ENDWITH"
 	IsNull    = "IS NULL"

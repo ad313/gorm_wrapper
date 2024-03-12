@@ -1,4 +1,4 @@
-package gormWapper
+package orm
 
 import (
 	"gorm.io/gorm"
@@ -21,7 +21,7 @@ func (t *Table1) TableName() string {
 }
 
 func Test_BuildGormTable(t *testing.T) {
-	var result = BuildGormTable[Table1]()
+	var result = BuildOrmTable[Table1]()
 	if result == nil || result.Table == nil || result.Error != nil {
 		t.Errorf("BuildGormTable faild")
 		return
@@ -38,7 +38,7 @@ func Test_BuildGormTable(t *testing.T) {
 	}
 
 	//缓存
-	result = BuildGormTable[Table1]()
+	result = BuildOrmTable[Table1]()
 	if result == nil || result.Table == nil || result.Error != nil {
 		t.Errorf("BuildGormTable faild")
 		return

@@ -1,4 +1,4 @@
-package gormWapper
+package orm
 
 import (
 	"context"
@@ -56,39 +56,27 @@ type leftJoinModel struct {
 	ext       string        //扩展字段，比如有软删除字段，这里加上软删除sql
 }
 
-func (a *ormWrapperBuilder[T]) addWhere(query interface{}, args []interface{}) {
-	if a.where == nil {
-		a.where = make([][]interface{}, 0)
+func (o *ormWrapperBuilder[T]) addWhere(query interface{}, args []interface{}) {
+	if o.where == nil {
+		o.where = make([][]interface{}, 0)
 	}
 
 	if query == nil {
-		a.wrapper.Error = errors.New("query 条件不能为空")
+		o.wrapper.Error = errors.New("query 条件不能为空")
 		return
 	}
 
-	a.where = append(a.where, append([]interface{}{query}, args...))
+	o.where = append(o.where, append([]interface{}{query}, args...))
 }
 
-func (a *ormWrapperBuilder[T]) addWhereWithWhereCondition(condition WhereCondition) {
-	if a.WhereCondition == nil {
-		a.WhereCondition = make([]WhereCondition, 0)
+func (o *ormWrapperBuilder[T]) addWhereWithWhereCondition(condition WhereCondition) {
+	if o.WhereCondition == nil {
+		o.WhereCondition = make([]WhereCondition, 0)
 	}
-	a.WhereCondition = append(a.WhereCondition, condition)
-
-	//if a.where == nil {
-	//	a.where = make([][]interface{}, 0)
-	//}
-	//
-	//sql, param, err := condition.BuildSql(_dbType)
-	//if err != nil {
-	//	a.wrapper.Error = errors.New("query 条件不能为空")
-	//	return
-	//}
-	//
-	//a.addWhere(sql, param)
+	o.WhereCondition = append(o.WhereCondition, condition)
 }
 
-func (a *ormWrapperBuilder[T]) mergeColumnName(column string, columnAlias string, tableAlias string) string {
+func (o *ormWrapperBuilder[T]) mergeColumnName(column string, columnAlias string, tableAlias string) string {
 	if tableAlias != "" {
 		column = formatSqlName(tableAlias, _dbType) + "." + column
 	}
@@ -100,7 +88,7 @@ func (a *ormWrapperBuilder[T]) mergeColumnName(column string, columnAlias string
 	return column
 }
 
-func (a *ormWrapperBuilder[T]) mergeColumnNameWithFunc(column string, columnAlias string, tableAlias string, f string) string {
+func (o *ormWrapperBuilder[T]) mergeColumnNameWithFunc(column string, columnAlias string, tableAlias string, f string) string {
 	var sql, _ = mergeTableColumnWithFunc(column, tableAlias, f, _dbType)
 	if columnAlias != "" {
 		sql += " as " + getSqlSm(_dbType) + columnAlias + getSqlSm(_dbType)
@@ -110,114 +98,114 @@ func (a *ormWrapperBuilder[T]) mergeColumnNameWithFunc(column string, columnAlia
 }
 
 // 设置主表，针对没有主动设置表别名，这里自动加上表名称做表别名
-func (a *ormWrapperBuilder[T]) buildModel() {
+func (o *ormWrapperBuilder[T]) buildModel() {
 	//没有手动设置表别名，这里判断是否需要加：left join、exists
-	if a.TableAlias == "" {
+	if o.TableAlias == "" {
 		//leftJoin
-		if len(a.leftJoin) > 0 {
-			a.TableAlias = a.TableName
+		if len(o.leftJoin) > 0 {
+			o.TableAlias = o.TableName
 		} else {
 			//exists
-			if len(a.WhereCondition) > 0 {
-				for _, condition := range a.WhereCondition {
+			if len(o.WhereCondition) > 0 {
+				for _, condition := range o.WhereCondition {
 					_, ok := condition.(*ExistsCondition)
 					if ok {
-						a.TableAlias = a.TableName
+						o.TableAlias = o.TableName
 					}
 				}
 			}
 		}
 	}
 
-	if a.TableAlias != "" {
-		a.DbContext = a.DbContext.Model(new(T)).Table(a.TableName + " as " + a.TableAlias)
+	if o.TableAlias != "" {
+		o.DbContext = o.DbContext.Model(new(T)).Table(formatSqlName(o.TableName, _dbType) + " as " + formatSqlName(o.TableAlias, _dbType))
 	} else {
-		a.DbContext = a.DbContext.Model(new(T))
+		o.DbContext = o.DbContext.Model(new(T))
 	}
 }
 
-func (a *ormWrapperBuilder[T]) buildWhere() {
-	if a.where == nil {
-		a.where = make([][]interface{}, 0)
+func (o *ormWrapperBuilder[T]) buildWhere() {
+	if o.where == nil {
+		o.where = make([][]interface{}, 0)
 	}
 
-	if len(a.WhereCondition) > 0 {
-		for _, condition := range a.WhereCondition {
-			sql, param, err := condition.BuildSql(_dbType, a.isUnscoped)
+	if len(o.WhereCondition) > 0 {
+		for _, condition := range o.WhereCondition {
+			sql, param, err := condition.BuildSql(_dbType, o.isUnscoped)
 			if err != nil {
-				a.wrapper.Error = errors.New("query 条件不能为空")
+				o.wrapper.Error = errors.New("query 条件不能为空")
 				return
 			}
 
-			a.addWhere(sql, param)
+			o.addWhere(sql, param)
 		}
 	}
 
-	for _, items := range a.where {
+	for _, items := range o.where {
 		if len(items) == 0 {
 			continue
 		}
 
 		if len(items) == 1 {
-			a.DbContext = a.DbContext.Where(items[0])
+			o.DbContext = o.DbContext.Where(items[0])
 		} else {
-			a.DbContext = a.DbContext.Where(items[0], items[1:]...)
+			o.DbContext = o.DbContext.Where(items[0], items[1:]...)
 		}
 	}
 }
 
-func (a *ormWrapperBuilder[T]) buildLeftJoin() {
-	if len(a.leftJoin) > 0 {
-		for _, join := range a.leftJoin {
-			a.DbContext = a.DbContext.
+func (o *ormWrapperBuilder[T]) buildLeftJoin() {
+	if len(o.leftJoin) > 0 {
+		for _, join := range o.leftJoin {
+			o.DbContext = o.DbContext.
 				Joins(fmt.Sprintf("left join %v as %v on %v = %v%v",
 					formatSqlName(join.tableName, _dbType),
 					formatSqlName(join.Alias, _dbType),
 					join.Left,
 					join.Right,
-					chooseTrueValue(a.isUnscoped, "", join.ext)))
+					chooseTrueValue(o.isUnscoped, "", join.ext)))
 		}
 
-		a.DbContext = a.DbContext.Distinct()
+		o.DbContext = o.DbContext.Distinct()
 	}
 }
 
-func (a *ormWrapperBuilder[T]) buildSelect() {
-	if a.selectColumns != nil && len(a.selectColumns) > 0 {
-		a.DbContext = a.DbContext.Select(strings.Join(a.selectColumns, ","))
+func (o *ormWrapperBuilder[T]) buildSelect() {
+	if o.selectColumns != nil && len(o.selectColumns) > 0 {
+		o.DbContext = o.DbContext.Select(strings.Join(o.selectColumns, ","))
 	}
 }
 
-func (a *ormWrapperBuilder[T]) buildOrderBy() {
-	if a.orderByColumns != nil && len(a.orderByColumns) > 0 {
-		a.DbContext = a.DbContext.Order(strings.Join(a.orderByColumns, ","))
+func (o *ormWrapperBuilder[T]) buildOrderBy() {
+	if o.orderByColumns != nil && len(o.orderByColumns) > 0 {
+		o.DbContext = o.DbContext.Order(strings.Join(o.orderByColumns, ","))
 	}
 }
 
-func (a *ormWrapperBuilder[T]) buildGroupBy() {
-	if a.groupByColumns != nil && len(a.groupByColumns) > 0 {
+func (o *ormWrapperBuilder[T]) buildGroupBy() {
+	if o.groupByColumns != nil && len(o.groupByColumns) > 0 {
 		//特殊处理一个参数的情况，否则报错
-		if len(a.groupByColumns) == 1 {
-			a.DbContext = a.DbContext.Group(strings.ReplaceAll(a.groupByColumns[0], getSqlSm(_dbType), ""))
+		if len(o.groupByColumns) == 1 {
+			o.DbContext = o.DbContext.Group(strings.ReplaceAll(o.groupByColumns[0], getSqlSm(_dbType), ""))
 		} else {
-			a.DbContext = a.DbContext.Group(strings.Join(a.groupByColumns, ","))
+			o.DbContext = o.DbContext.Group(strings.Join(o.groupByColumns, ","))
 		}
 	}
 }
 
 // Build 创建 gorm sql
-func (a *ormWrapperBuilder[T]) Build() *gorm.DB {
-	a.buildWhere()
-	a.buildSelect()
-	a.buildLeftJoin()
-	a.buildOrderBy()
-	a.buildGroupBy()
-	return a.DbContext
+func (o *ormWrapperBuilder[T]) Build() *gorm.DB {
+	o.buildWhere()
+	o.buildSelect()
+	o.buildLeftJoin()
+	o.buildOrderBy()
+	o.buildGroupBy()
+	return o.DbContext
 }
 
 // BuildForQuery 创建 gorm sql
-func (a *ormWrapperBuilder[T]) BuildForQuery() *gorm.DB {
-	a.buildModel()
-	a.Build()
-	return a.DbContext
+func (o *ormWrapperBuilder[T]) BuildForQuery() *gorm.DB {
+	o.buildModel()
+	o.Build()
+	return o.DbContext
 }
