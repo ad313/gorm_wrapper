@@ -6,14 +6,15 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/plugin/soft_delete"
 	"testing"
 )
 
 type Table3 struct {
-	Id        string         `gorm:"column:id;type:varchar(36);primaryKey;not null"` //标识
-	Name      string         `gorm:"column:name;type:varchar(200)" json:"name"`
-	Age       int32          `gorm:"column:age;type:int" json:"age"`
-	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at;type:datetime" json:"deleted_at"`
+	Id        string                `gorm:"column:id;type:varchar(36);primaryKey;not null"` //标识
+	Name      string                `gorm:"column:name;type:varchar(200)" json:"name"`
+	Age       int32                 `gorm:"column:age;type:int" json:"age"`
+	DeletedAt soft_delete.DeletedAt `gorm:"column:deleted_at;softDelete:flag"`
 }
 
 type Table4 struct {
@@ -117,6 +118,22 @@ func Test_InitData(t *testing.T) {
 		t.Errorf("GetById faild")
 	}
 
+	_, err = table3.GetDbContext(context.Background()).Delete()
+	if err == nil {
+		t.Errorf("Delete faild")
+	}
+
+	////根据条件删除
+	//count, err := table3.GetDbContext(context.Background()).
+	//	WhereCondition(&Condition{Column: &table3.Age, CompareSymbols: Gt, Arg: 1}).
+	//	Delete()
+	//if err != nil {
+	//	t.Errorf("Delete faild")
+	//}
+	//if count <= 0 {
+	//	t.Errorf("Delete faild")
+	//}
+
 	////删除
 	//err = table3.GetDbContext(context.Background()).DeleteById()
 	//if err == nil {
@@ -132,12 +149,7 @@ func Test_InitData(t *testing.T) {
 
 func Test_Wrapper(t *testing.T) {
 
-	var dbContext = table3.GetDbContext(context.Background()).WhereCondition(&Condition{
-		TableAlias:     "",
-		Column:         &table3.Age,
-		CompareSymbols: Gt,
-		Arg:            1,
-	})
+	var dbContext = table3.GetDbContext(context.Background()).WhereCondition(&Condition{Column: &table3.Age, CompareSymbols: Gt, Arg: 1})
 
 	fmt.Println(dbContext.ToSql())
 
@@ -176,6 +188,27 @@ func Test_Wrapper(t *testing.T) {
 	}).InnerJoin(table3, "b", &table3.Id, &table3.Id)
 
 	fmt.Println(dbContext.ToSql())
+
+	//join 衍生表
+	var childTable = table3.GetDbContext(context.Background()).WhereCondition(&Condition{
+		//TableAlias:     "b",
+		Column:         &table3.Age,
+		CompareSymbols: Gt,
+		Arg:            1,
+	}).
+		BuildChildrenTable()
+
+	sql, err := table3.GetDbContext(context.Background()).JoinChildTable(childTable, "b", &table3.Id, &table3.Id, LeftJoin).ToSql()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(sql)
+	fmt.Println("-----------------------")
+
+	//查询衍生表
+	sql, err = table3.GetDbContext(context.Background()).SetTable("c", childTable).ToSql()
+	fmt.Println(sql)
 
 	//sql, err := table3.GetDbContext(context.Background()).
 	//	SetTableAlias("a").

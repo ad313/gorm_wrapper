@@ -6,6 +6,7 @@ import (
 	"github.com/ad313/gorm_wrapper/orm/ref"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
+	"gorm.io/plugin/soft_delete"
 	"reflect"
 	"sync"
 )
@@ -26,6 +27,7 @@ type TableInfo[T interface{}] struct {
 type TableSchema struct {
 	Name              string //表名
 	DeletedColumnName string //软删除字段名
+	DeleteCondition   string //软删除 片段sql：IS NULL，=0
 	PrimaryKeyName    string //主键名称
 }
 
@@ -130,8 +132,9 @@ func getColumnNameMap(model any) (map[uintptr]string, *TableSchema) {
 			}
 
 			//判断软删除字段
-			if isGormDeletedAt(field, valueOf) {
+			if sql, ok := isGormDeletedAt(field, valueOf); ok {
 				tableSchema.DeletedColumnName = columnName
+				tableSchema.DeleteCondition = sql
 			}
 
 			//主键
@@ -145,15 +148,26 @@ func getColumnNameMap(model any) (map[uintptr]string, *TableSchema) {
 	//优先用本级的软删除字段
 	if tableSchema.DeletedColumnName == "" {
 		tableSchema.DeletedColumnName = childrenTableSchema.DeletedColumnName
+		tableSchema.DeleteCondition = childrenTableSchema.DeleteCondition
 	}
 
 	return columnNameMap, tableSchema
 }
 
-func isGormDeletedAt(field reflect.StructField, valueOf reflect.Value) bool {
+func isGormDeletedAt(field reflect.StructField, valueOf reflect.Value) (string, bool) {
 	//判断软删除字段
 	_, ok := ref.IsTypeByValue[gorm.DeletedAt](valueOf.FieldByName(field.Name).Interface())
-	return ok
+	if ok {
+		return " IS NULL", true
+	}
+
+	//数字类型
+	_, ok = ref.IsTypeByValue[soft_delete.DeletedAt](valueOf.FieldByName(field.Name).Interface())
+	if ok {
+		return " = 0", true
+	}
+
+	return "", false
 }
 
 // 递归获取嵌套字段名
@@ -187,8 +201,9 @@ func getSubFieldColumnNameMap(valueOf reflect.Value, field reflect.StructField) 
 			result[pointer] = name
 
 			//判断软删除字段
-			if isGormDeletedAt(subField, valueOf) {
+			if sql, ok := isGormDeletedAt(subField, valueOf); ok {
 				tableSchema.DeletedColumnName = name
+				tableSchema.DeleteCondition = sql
 			}
 
 			//主键
@@ -202,6 +217,7 @@ func getSubFieldColumnNameMap(valueOf reflect.Value, field reflect.StructField) 
 	//优先用本级的软删除字段
 	if tableSchema.DeletedColumnName == "" {
 		tableSchema.DeletedColumnName = childrenTableSchema.DeletedColumnName
+		tableSchema.DeleteCondition = childrenTableSchema.DeleteCondition
 	}
 	if tableSchema.PrimaryKeyName == "" {
 		tableSchema.PrimaryKeyName = childrenTableSchema.PrimaryKeyName

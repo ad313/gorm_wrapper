@@ -27,6 +27,14 @@ const (
 	NotNull   = "IS NOT NULL"
 )
 
+// 连表
+const (
+	LeftJoin  = "Left Join"
+	InnerJoin = "Inner Join"
+	RightJoin = "Right Join"
+	OuterJoin = "Outer Join"
+)
+
 // 聚合函数
 const (
 	Max   = "Max"   //最大值

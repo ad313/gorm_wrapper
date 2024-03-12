@@ -29,8 +29,9 @@ type Pager struct {
 type ormWrapperBuilder[T interface{}] struct {
 	wrapper *OrmWrapper[T]
 
-	TableName  string //表名
-	TableAlias string //表别名
+	TableName  string   //表名
+	TableAlias string   //表别名
+	childTable *gorm.DB //查询衍生表，为空则查询主表
 
 	ctx        context.Context //context
 	DbContext  *gorm.DB        //操作后的db
@@ -51,12 +52,13 @@ type ormWrapperBuilder[T interface{}] struct {
 // joinModel 连表条件，会自动加上软删除字段
 type joinModel struct {
 	Table     schema.Tabler //连接表，右表
+	Db        *gorm.DB      //连接衍生表
 	tableName string        //右表表名
 	Alias     string        //右表表别名
 	Left      string        //左表字段
 	Right     string        //右表字段
 	ext       string        //扩展字段，比如有软删除字段，这里加上软删除sql
-	key       string        //left join;inner join
+	joinKey   string        //left join;inner join
 }
 
 func (o *ormWrapperBuilder[T]) addWhere(query interface{}, args []interface{}) {
@@ -146,10 +148,35 @@ func (o *ormWrapperBuilder[T]) buildModel() {
 		}
 	}
 
-	if o.TableAlias != "" {
-		o.DbContext = o.DbContext.Model(new(T)).Table(formatSqlName(o.TableName, _dbType) + " as " + formatSqlName(o.TableAlias, _dbType))
+	var addSoftDelCondition = func(builder *ormWrapperBuilder[T], table schema.Tabler, tableAlias string) {
+		if builder.isUnscoped {
+			return
+		}
+
+		softDel, err := getTableSoftDeleteColumnSql(table, tableAlias, _dbType)
+		if err != nil {
+			builder.wrapper.Error = err
+			return
+		}
+
+		builder.addWhereWithWhereCondition(&OriginalCondition{
+			Sql: softDel,
+			Arg: nil,
+		})
+	}
+
+	if o.TableAlias == "" {
+		o.DbContext = o.DbContext.Model(new(T)).Unscoped()
+		addSoftDelCondition(o, o.wrapper.table, "")
+		return
+	}
+
+	//衍生表
+	if o.childTable != nil {
+		o.DbContext = o.DbContext.Unscoped().Table("(?) as "+formatSqlName(o.TableAlias, _dbType), o.childTable)
 	} else {
-		o.DbContext = o.DbContext.Model(new(T))
+		o.DbContext = o.DbContext.Unscoped().Table(formatSqlName(o.TableName, _dbType) + " as " + formatSqlName(o.TableAlias, _dbType))
+		addSoftDelCondition(o, o.wrapper.table, o.TableAlias)
 	}
 }
 
@@ -183,17 +210,47 @@ func (o *ormWrapperBuilder[T]) buildWhere() {
 	}
 }
 
-func (o *ormWrapperBuilder[T]) buildLeftJoin() {
+//func (o *ormWrapperBuilder[T]) buildJoin() {
+//	if len(o.joinModels) > 0 {
+//		for _, join := range o.joinModels {
+//			o.DbContext = o.DbContext.
+//				Joins(fmt.Sprintf("%v %v as %v on %v = %v%v",
+//					join.key,
+//					formatSqlName(join.tableName, _dbType),
+//					formatSqlName(join.Alias, _dbType),
+//					join.Left,
+//					join.Right,
+//					chooseTrueValue(o.isUnscoped, "", join.ext)))
+//		}
+//
+//		o.DbContext = o.DbContext.Distinct()
+//	}
+//}
+
+func (o *ormWrapperBuilder[T]) buildJoin() {
 	if len(o.joinModels) > 0 {
 		for _, join := range o.joinModels {
-			o.DbContext = o.DbContext.
-				Joins(fmt.Sprintf("%v %v as %v on %v = %v%v",
-					join.key,
-					formatSqlName(join.tableName, _dbType),
+			//衍生表
+			if join.Db != nil {
+				var sql = fmt.Sprintf("%v (?) as %v on %v = %v%v",
+					join.joinKey,
 					formatSqlName(join.Alias, _dbType),
 					join.Left,
 					join.Right,
-					chooseTrueValue(o.isUnscoped, "", join.ext)))
+					chooseTrueValue(o.isUnscoped, "", join.ext))
+				o.DbContext = o.DbContext.
+					Joins(sql, join.Db)
+			} else {
+				o.DbContext = o.DbContext.
+					Joins(fmt.Sprintf("%v %v as %v on %v = %v%v",
+						join.joinKey,
+						formatSqlName(join.tableName, _dbType),
+						formatSqlName(join.Alias, _dbType),
+						join.Left,
+						join.Right,
+						chooseTrueValue(o.isUnscoped, "", join.ext)))
+			}
+
 		}
 
 		o.DbContext = o.DbContext.Distinct()
@@ -241,7 +298,7 @@ func (o *ormWrapperBuilder[T]) buildHaving() {
 func (o *ormWrapperBuilder[T]) Build() *gorm.DB {
 	o.buildWhere()
 	o.buildSelect()
-	o.buildLeftJoin()
+	o.buildJoin()
 	o.buildOrderBy()
 	o.buildGroupBy()
 	o.buildHaving()

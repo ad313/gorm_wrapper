@@ -185,7 +185,7 @@ func mergeTableWithAliasByValue(table schema.Tabler, alias string, dbType string
 // 获取软删除字段
 func getTableSoftDeleteColumnSql(table schema.Tabler, tableAlias string, dbType string) (string, error) {
 	var tableSchema = GetTableSchema(table)
-	if tableSchema != nil && tableSchema.DeletedColumnName != "" {
+	if tableSchema != nil && tableSchema.DeletedColumnName != "" && tableSchema.DeleteCondition != "" {
 		n, err := resolveColumnName(tableSchema.DeletedColumnName, dbType)
 		if err != nil {
 			return "", err
@@ -195,7 +195,7 @@ func getTableSoftDeleteColumnSql(table schema.Tabler, tableAlias string, dbType 
 			n = formatSqlName(tableAlias, _dbType) + "." + n
 		}
 
-		return n + " IS NULL", nil
+		return n + tableSchema.DeleteCondition, nil
 	}
 
 	return "", nil
