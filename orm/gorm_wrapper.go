@@ -125,7 +125,7 @@ func (o *OrmWrapper[T]) GroupBy(column any, tableAlias ...string) *OrmWrapper[T]
 	return o
 }
 
-func (o *OrmWrapper[T]) Having(having WhereCondition) *OrmWrapper[T] {
+func (o *OrmWrapper[T]) Having(having OrmCondition) *OrmWrapper[T] {
 	o.builder.addHavingWithWhereCondition(having)
 	return o
 }

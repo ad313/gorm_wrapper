@@ -64,7 +64,7 @@ func Test_condition_exists(t *testing.T) {
 		IsNotExists:      false,
 	}
 
-	exists.ConditionBuilder = NewOrEmptyConditionBuilder().AddChildrenBuilder(NewAndConditionBuilder(cond, cond2)).AddChildrenCondition(cond_IsNull)
+	exists.ConditionBuilder = NewOr(NewAnd(cond, cond2), cond_IsNull)
 	sql, param, err := exists.BuildSql(dbType)
 	if err != nil {
 		t.Errorf("Test_condition_exists faild")

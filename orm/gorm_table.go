@@ -256,9 +256,9 @@ func getSqlSm(dbType string) string {
 	case Dm:
 		return "\""
 	case Postgres:
-		return "'"
+		return "\""
 	case Sqlserver:
-		return "'"
+		return "\""
 	default:
 		break
 	}

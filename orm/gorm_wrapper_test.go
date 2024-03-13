@@ -126,7 +126,7 @@ package orm
 //
 //	////根据条件删除
 //	//count, err := table3.GetDbContext(context.Background()).
-//	//	WhereCondition(&Condition{Column: &table3.Age, CompareSymbols: Gt, Arg: 1}).
+//	//	OrmCondition(&Condition{Column: &table3.Age, CompareSymbols: Gt, Arg: 1}).
 //	//	Delete()
 //	//if err != nil {
 //	//	t.Errorf("Delete faild")
@@ -150,7 +150,7 @@ package orm
 //
 //func Test_Wrapper(t *testing.T) {
 //
-//	var dbContext = table3.GetDbContext(context.Background()).WhereCondition(&Condition{Column: &table3.Age, CompareSymbols: Gt, Arg: 1})
+//	var dbContext = table3.GetDbContext(context.Background()).OrmCondition(&Condition{Column: &table3.Age, CompareSymbols: Gt, Arg: 1})
 //
 //	fmt.Println(dbContext.ToSql())
 //
@@ -163,7 +163,7 @@ package orm
 //	}
 //
 //	//having
-//	dbContext = table3.GetDbContext(context.Background()).WhereCondition(&Condition{
+//	dbContext = table3.GetDbContext(context.Background()).OrmCondition(&Condition{
 //		TableAlias:     "",
 //		Column:         &table3.Age,
 //		CompareSymbols: Gt,
@@ -181,7 +181,7 @@ package orm
 //	fmt.Println(dbContext.ToSql())
 //
 //	//join
-//	dbContext = table3.GetDbContext(context.Background()).WhereCondition(&Condition{
+//	dbContext = table3.GetDbContext(context.Background()).OrmCondition(&Condition{
 //		TableAlias:     "b",
 //		Column:         &table3.Age,
 //		CompareSymbols: Gt,
@@ -191,7 +191,7 @@ package orm
 //	fmt.Println(dbContext.ToSql())
 //
 //	//join 衍生表
-//	var childTable = table3.GetDbContext(context.Background()).WhereCondition(&Condition{
+//	var childTable = table3.GetDbContext(context.Background()).OrmCondition(&Condition{
 //		//TableAlias:     "b",
 //		Column:         &table3.Age,
 //		CompareSymbols: Gt,
@@ -212,7 +212,7 @@ package orm
 //
 //	//字段子查询
 //	var db1 = table3.GetDbContext(context.Background()).Select(&table3.Id).Limit(1).BuildForQuery()
-//	var db2 = table3.GetDbContext(context.Background()).WhereCondition(&Condition{
+//	var db2 = table3.GetDbContext(context.Background()).OrmCondition(&Condition{
 //		Column:         &table3.Id,
 //		CompareSymbols: Eq,
 //		Arg:            db1,
@@ -224,7 +224,7 @@ package orm
 //	//	SetTableAlias("a").
 //	//	//SelectColumnOriginal("a.*", "").
 //	//	//SelectColumnOriginal("count(*)", "aaa").
-//	//	WhereCondition(&Condition{
+//	//	OrmCondition(&Condition{
 //	//		Column:         &table3.Id,
 //	//		CompareSymbols: Eq,
 //	//		Arg:            "123",
@@ -233,9 +233,9 @@ package orm
 //	//	WhereByColumn(&table3.Name, Like, "abc", "a").
 //	//	WhereByColumn(&table3.Name, StartWith, "abc", "b").
 //	//	WhereByColumn(&table3.Name, EndWith, "abc", "c").
-//	//	WhereCondition(&ExistsCondition{
+//	//	OrmCondition(&ExistsCondition{
 //	//		Table: table3,
-//	//		ConditionBuilder: NewAndConditionBuilder(&TableCondition{
+//	//		ConditionBuilder: NewAnd(&TableCondition{
 //	//			InnerColumn:    &table3.Id,
 //	//			OuterAlias:     "a",
 //	//			OuterColumn:    &table3.Id,

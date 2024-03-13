@@ -22,14 +22,14 @@ func (o *OrmWrapper[T]) WhereIfNotNil(query interface{}, arg interface{}) *OrmWr
 	return o
 }
 
-// WhereCondition 通过条件查询
-func (o *OrmWrapper[T]) WhereCondition(query WhereCondition) *OrmWrapper[T] {
+// OrmCondition 通过条件查询
+func (o *OrmWrapper[T]) WhereCondition(query OrmCondition) *OrmWrapper[T] {
 	o.builder.addWhereWithWhereCondition(query)
 	return o
 }
 
 // WhereConditionIf 通过条件查询，加入 bool 条件控制
-func (o *OrmWrapper[T]) WhereConditionIf(do bool, query WhereCondition) *OrmWrapper[T] {
+func (o *OrmWrapper[T]) WhereConditionIf(do bool, query OrmCondition) *OrmWrapper[T] {
 	if do {
 		return o.WhereCondition(query)
 	}

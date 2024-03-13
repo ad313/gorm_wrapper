@@ -14,7 +14,7 @@ func Test_gorm_condition_builder_error(t *testing.T) {
 		OuterColumn:    nil,
 		CompareSymbols: "",
 	}
-	_, _, err := NewAndEmptyConditionBuilder().AddChildrenCondition(cond).BuildSql(dbType)
+	_, _, err := NewAnd(cond).BuildSql(dbType)
 	if err == nil {
 		t.Errorf("Test_gorm_condition_builder faild")
 	}
@@ -29,11 +29,11 @@ func Test_gorm_condition_builder(t *testing.T) {
 		OuterColumn:    &condTable.Name,
 		CompareSymbols: NotEq,
 	}
-	sql, param, err := NewAndEmptyConditionBuilder().AddChildrenCondition(cond).BuildSql(dbType)
+	sql, param, err := NewAnd(cond).BuildSql(dbType)
 	if err != nil {
 		t.Errorf("Test_gorm_condition_builder faild")
 	}
-	if sql != fmt.Sprintf("(%v.%v <> %v.%v)", f("a"), f("id"), f("b"), f("name")) {
+	if sql != fmt.Sprintf("%v.%v <> %v.%v", f("a"), f("id"), f("b"), f("name")) {
 		t.Errorf(fmt.Sprintf("Test_gorm_condition_builder faild：a：%v", sql))
 	}
 	if len(param) != 0 {
@@ -48,7 +48,7 @@ func Test_gorm_condition_builder(t *testing.T) {
 		OuterColumn:    &condTable.Age,
 		CompareSymbols: Gt,
 	}
-	sql, param, err = NewAndEmptyConditionBuilder().AddChildrenCondition(cond, cond2).BuildSql(dbType)
+	sql, param, err = NewAnd(cond, cond2).BuildSql(dbType)
 	if err != nil {
 		t.Errorf("Test_gorm_condition_builder faild")
 	}
@@ -60,7 +60,7 @@ func Test_gorm_condition_builder(t *testing.T) {
 	}
 
 	//3 or
-	sql, param, err = NewOrEmptyConditionBuilder().AddChildrenCondition(cond, cond2).BuildSql(dbType)
+	sql, param, err = NewOr(cond, cond2).BuildSql(dbType)
 	if err != nil {
 		t.Errorf("Test_gorm_condition_builder faild")
 	}
@@ -79,11 +79,11 @@ func Test_gorm_condition_builder(t *testing.T) {
 		OuterColumn:    &condTable.Age,
 		CompareSymbols: IsNull, //此时 OuterAlias 和 OuterColumn 无效
 	}
-	sql, param, err = NewAndEmptyConditionBuilder().AddChildrenCondition(cond_IsNull).BuildSql(dbType)
+	sql, param, err = NewAnd(cond_IsNull).BuildSql(dbType)
 	if err != nil {
 		t.Errorf("Test_gorm_condition_builder faild")
 	}
-	if sql != fmt.Sprintf("(%v.%v IS NULL )", f("a"), f("age")) {
+	if sql != fmt.Sprintf("%v.%v IS NULL ", f("a"), f("age")) {
 		t.Errorf(fmt.Sprintf("Test_gorm_condition_builder faild：a：%v", sql))
 	}
 	if len(param) != 0 {
@@ -91,8 +91,7 @@ func Test_gorm_condition_builder(t *testing.T) {
 	}
 
 	//嵌套
-	var b1 = NewOrConditionBuilder(cond, cond2)
-	sql, param, err = NewAndEmptyConditionBuilder().AddChildrenBuilder(b1).AddChildrenCondition(cond_IsNull).BuildSql(dbType)
+	sql, param, err = NewAnd(NewOr(cond, cond2), cond_IsNull).BuildSql(dbType)
 	if err != nil {
 		t.Errorf("Test_gorm_condition_builder faild")
 	}

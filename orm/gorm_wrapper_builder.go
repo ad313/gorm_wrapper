@@ -38,13 +38,13 @@ type ormWrapperBuilder[T interface{}] struct {
 	_DbContext *gorm.DB        //最初始的db
 	isOuterDb  bool            //是否外部传入db
 
-	where           [][]any          //普通条件
-	WhereCondition  []WhereCondition //condition条件
-	HavingCondition []WhereCondition //having条件
-	joinModels      []*joinModel     //leftJoin 集合
-	selectColumns   []string         //select 字段集合
-	groupByColumns  []string         //group by 字段集合
-	orderByColumns  []string         //order by 字段集合
+	where           [][]any        //普通条件
+	WhereCondition  []OrmCondition //condition条件
+	HavingCondition []OrmCondition //having条件
+	joinModels      []*joinModel   //leftJoin 集合
+	selectColumns   []string       //select 字段集合
+	groupByColumns  []string       //group by 字段集合
+	orderByColumns  []string       //order by 字段集合
 
 	isUnscoped bool //和gorm一样，忽略软删除字段
 }
@@ -74,9 +74,9 @@ func (o *ormWrapperBuilder[T]) addWhere(query interface{}, args []interface{}) {
 	o.where = append(o.where, append([]interface{}{query}, args...))
 }
 
-func (o *ormWrapperBuilder[T]) addWhereWithWhereCondition(condition WhereCondition) {
+func (o *ormWrapperBuilder[T]) addWhereWithWhereCondition(condition OrmCondition) {
 	if o.WhereCondition == nil {
-		o.WhereCondition = make([]WhereCondition, 0)
+		o.WhereCondition = make([]OrmCondition, 0)
 	}
 
 	if condition == nil {
@@ -86,9 +86,9 @@ func (o *ormWrapperBuilder[T]) addWhereWithWhereCondition(condition WhereConditi
 	o.WhereCondition = append(o.WhereCondition, condition)
 }
 
-func (o *ormWrapperBuilder[T]) addHavingWithWhereCondition(condition WhereCondition) {
+func (o *ormWrapperBuilder[T]) addHavingWithWhereCondition(condition OrmCondition) {
 	if o.HavingCondition == nil {
-		o.HavingCondition = make([]WhereCondition, 0)
+		o.HavingCondition = make([]OrmCondition, 0)
 	}
 
 	if condition == nil {
