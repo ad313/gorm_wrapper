@@ -10,7 +10,7 @@ import (
 func (o *OrmWrapper[T]) Count() (int64, error) {
 
 	//Build sql
-	o.BuildChildrenTable()
+	o.BuildForQuery()
 
 	//创建语句过程中的错误
 	if o.Error != nil {
@@ -33,11 +33,66 @@ func (o *OrmWrapper[T]) Count() (int64, error) {
 	return total, nil
 }
 
+// GetById 通过id获取数据
+func (o *OrmWrapper[T]) GetById(id interface{}) (*T, error) {
+	if id == nil {
+		o.Error = errors.New("id 不能为空")
+		return nil, o.Error
+	}
+
+	key, err := o.builder.getPrimaryKey()
+	if err != nil {
+		return nil, err
+	}
+
+	sql, _, err := (&Condition{
+		Column:         key,
+		CompareSymbols: Eq,
+		Arg:            id,
+	}).BuildSql(_dbType)
+	if err != nil {
+		return nil, err
+	}
+
+	var result = new(T)
+	err = o.GetNewDb().Model(new(T)).Where(sql, id).Take(&result).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+
+	return result, err
+}
+
+// GetByIds 通过id获取数据
+func (o *OrmWrapper[T]) GetByIds(idList []interface{}) ([]*T, error) {
+	if len(idList) == 0 {
+		o.Error = errors.New("idList 不能为空")
+		return nil, o.Error
+	}
+
+	key, err := o.builder.getPrimaryKey()
+	if err != nil {
+		return nil, err
+	}
+
+	sql, _, err := (&Condition{
+		Column:         key,
+		CompareSymbols: In,
+		Arg:            idList,
+	}).BuildSql(_dbType)
+	if err != nil {
+		return nil, err
+	}
+
+	var result = make([]*T, 0)
+	return result, o.GetNewDb().Model(new(T)).Where(sql, idList).Scan(&result).Error
+}
+
 // FirstOrDefault 返回第一条，没命中返回nil，可以传入自定义scan，自定义接收数据
 func (o *OrmWrapper[T]) FirstOrDefault(scan ...func(db *gorm.DB) error) (*T, error) {
 
 	//Build sql
-	o.BuildChildrenTable()
+	o.BuildForQuery()
 
 	//创建语句过程中的错误
 	if o.Error != nil {
@@ -76,7 +131,7 @@ func (o *OrmWrapper[T]) ToList(scan ...func(db *gorm.DB) error) ([]*T, error) {
 	}
 
 	//Build sql
-	o.BuildChildrenTable()
+	o.BuildForQuery()
 
 	if len(scan) > 0 {
 		if scan[0] == nil {
@@ -98,7 +153,7 @@ func (o *OrmWrapper[T]) ToList(scan ...func(db *gorm.DB) error) ([]*T, error) {
 func (o *OrmWrapper[T]) ToPagerList(pager *Pager, scan ...func(db *gorm.DB) error) (*PagerList[T], error) {
 
 	//Build sql
-	o.BuildChildrenTable()
+	o.BuildForQuery()
 
 	//创建语句过程中的错误
 	if o.Error != nil {
@@ -171,8 +226,8 @@ func (o *OrmWrapper[T]) ToPagerList(pager *Pager, scan ...func(db *gorm.DB) erro
 	return result, nil
 }
 
-// Update 更新，传了字段只更新出入字段，否则更新全部
-func (o *OrmWrapper[T]) Update(item *T, updateColumns ...interface{}) (int64, error) {
+// UpdateOne 更新单个，主键作为条件；传了字段只更新出入字段，否则更新全部
+func (o *OrmWrapper[T]) UpdateOne(item *T, updateColumns ...interface{}) (int64, error) {
 	if item == nil {
 		return 0, nil
 	}
@@ -184,7 +239,7 @@ func (o *OrmWrapper[T]) Update(item *T, updateColumns ...interface{}) (int64, er
 		isUpdateAll = true
 	}
 
-	o.BuildChildrenTable()
+	o.Build()
 
 	//创建语句过程中的错误
 	if o.Error != nil {
@@ -196,12 +251,12 @@ func (o *OrmWrapper[T]) Update(item *T, updateColumns ...interface{}) (int64, er
 		result = o.builder.DbContext.Save(item)
 		return result.RowsAffected, result.Error
 	} else {
-		result = o.builder.DbContext.UpdateColumns(item)
+		result = o.builder.DbContext.Updates(item)
 		return result.RowsAffected, result.Error
 	}
 }
 
-// UpdateList 更新，传了字段只更新出入字段，否则更新全部
+// UpdateList 更新多个，主键作为条件；传了字段只更新出入字段，否则更新全部
 func (o *OrmWrapper[T]) UpdateList(items []*T, updateColumns ...interface{}) (int64, error) {
 	if len(items) == 0 {
 		return 0, nil
@@ -212,7 +267,7 @@ func (o *OrmWrapper[T]) UpdateList(items []*T, updateColumns ...interface{}) (in
 	//外部开启了事务
 	if o.builder.isOuterDb {
 		for _, item := range items {
-			c, err := o.Update(item, updateColumns...)
+			c, err := o.UpdateOne(item, updateColumns...)
 			if err != nil {
 				return 0, err
 			}
@@ -233,7 +288,7 @@ func (o *OrmWrapper[T]) UpdateList(items []*T, updateColumns ...interface{}) (in
 				o.SetDb(o.builder.ctx, tx)
 			}
 
-			c, err := o.Update(item, updateColumns...)
+			c, err := o.UpdateOne(item, updateColumns...)
 			if err != nil {
 				return err
 			}
@@ -251,6 +306,41 @@ func (o *OrmWrapper[T]) UpdateList(items []*T, updateColumns ...interface{}) (in
 	}
 
 	return total, nil
+}
+
+// Update 传入字典更新，必须添加查询条件
+func (o *OrmWrapper[T]) Update(columnMap map[interface{}]interface{}) (int64, error) {
+	if len(columnMap) == 0 {
+		o.Error = errors.New("update 更新字段不能为空")
+		return 0, o.Error
+	}
+
+	if len(o.builder.where) == 0 && len(o.builder.WhereCondition) == 0 {
+		o.Error = errors.New("update 更新操作必须加条件")
+		return 0, o.Error
+	}
+
+	o.BuildForQuery()
+
+	//创建语句过程中的错误
+	if o.Error != nil {
+		return 0, o.Error
+	}
+
+	var m = make(map[string]interface{})
+	for key, value := range columnMap {
+		name, err := resolveColumnName(key, "")
+		if err != nil {
+			o.Error = err
+			return 0, err
+		}
+
+		m[name] = value
+	}
+
+	var result *gorm.DB
+	result = o.builder.DbContext.Updates(m)
+	return result.RowsAffected, result.Error
 }
 
 // DeleteById 通过id删除数据，可以传入id集合
@@ -272,59 +362,4 @@ func (o *OrmWrapper[T]) Delete() (int64, error) {
 
 	var exc = o.Build().Delete(new(T))
 	return exc.RowsAffected, exc.Error
-}
-
-// GetById 通过id获取数据
-func (o *OrmWrapper[T]) GetById(id interface{}) (*T, error) {
-	if id == nil {
-		o.Error = errors.New("id 不能为空")
-		return nil, o.Error
-	}
-
-	key, err := o.builder.getPrimaryKey()
-	if err != nil {
-		return nil, err
-	}
-
-	sql, _, err := (&Condition{
-		Column:         key,
-		CompareSymbols: Eq,
-		Arg:            id,
-	}).BuildSql(_dbType)
-	if err != nil {
-		return nil, err
-	}
-
-	var result = new(T)
-	err = o.GetNewDb().Model(new(T)).Where(sql, id).Take(&result).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil
-	}
-
-	return result, err
-}
-
-// GetByIds 通过id获取数据
-func (o *OrmWrapper[T]) GetByIds(idList []interface{}) ([]*T, error) {
-	if len(idList) == 0 {
-		o.Error = errors.New("idList 不能为空")
-		return nil, o.Error
-	}
-
-	key, err := o.builder.getPrimaryKey()
-	if err != nil {
-		return nil, err
-	}
-
-	sql, _, err := (&Condition{
-		Column:         key,
-		CompareSymbols: In,
-		Arg:            idList,
-	}).BuildSql(_dbType)
-	if err != nil {
-		return nil, err
-	}
-
-	var result = make([]*T, 0)
-	return result, o.GetNewDb().Model(new(T)).Where(sql, idList).Scan(&result).Error
 }

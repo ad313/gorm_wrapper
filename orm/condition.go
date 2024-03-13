@@ -42,7 +42,7 @@ func (c *Condition) BuildSql(dbType string, extend ...interface{}) (string, []in
 		}
 		c.Arg = param
 
-		c.sql, c.error = mergeWhereString(c.Column, c.CompareSymbols, c.TableAlias, c.Func, dbType)
+		c.sql, c.error = mergeWhereString(c.Column, c.CompareSymbols, c.TableAlias, c.Func, dbType, c.Arg)
 		c.Arg = mergeWhereValue(c.CompareSymbols, c.Arg)
 		c.isBuild = true
 	}

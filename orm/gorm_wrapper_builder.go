@@ -210,23 +210,6 @@ func (o *ormWrapperBuilder[T]) buildWhere() {
 	}
 }
 
-//func (o *ormWrapperBuilder[T]) buildJoin() {
-//	if len(o.joinModels) > 0 {
-//		for _, join := range o.joinModels {
-//			o.DbContext = o.DbContext.
-//				Joins(fmt.Sprintf("%v %v as %v on %v = %v%v",
-//					join.key,
-//					formatSqlName(join.tableName, _dbType),
-//					formatSqlName(join.Alias, _dbType),
-//					join.Left,
-//					join.Right,
-//					chooseTrueValue(o.isUnscoped, "", join.ext)))
-//		}
-//
-//		o.DbContext = o.DbContext.Distinct()
-//	}
-//}
-
 func (o *ormWrapperBuilder[T]) buildJoin() {
 	if len(o.joinModels) > 0 {
 		for _, join := range o.joinModels {
@@ -259,7 +242,7 @@ func (o *ormWrapperBuilder[T]) buildJoin() {
 
 func (o *ormWrapperBuilder[T]) buildSelect() {
 	if o.selectColumns != nil && len(o.selectColumns) > 0 {
-		o.DbContext = o.DbContext.Select(strings.Join(o.selectColumns, ","))
+		o.DbContext = o.DbContext.Select(o.selectColumns)
 	}
 }
 

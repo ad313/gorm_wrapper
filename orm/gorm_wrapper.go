@@ -108,14 +108,6 @@ func (o *OrmWrapper[T]) SetTable(alias string, childTable ...*gorm.DB) *OrmWrapp
 	return o
 }
 
-//// SetTableAlias 指定主表表别名，如果不指定，当有 left join 或者 exists时，默认是表名称
-//func (o *OrmWrapper[T]) SetTableAlias(alias string) *OrmWrapper[T] {
-//	if alias != "" {
-//		o.builder.TableAlias = alias
-//	}
-//	return o
-//}
-
 // GroupBy 可多次调用，按照调用顺序排列字段
 func (o *OrmWrapper[T]) GroupBy(column any, tableAlias ...string) *OrmWrapper[T] {
 	if o.builder.groupByColumns == nil {
@@ -172,6 +164,28 @@ func (o *OrmWrapper[T]) OrderByDesc(column any, tableAlias ...string) *OrmWrappe
 	return o
 }
 
+// Limit Limit
+func (o *OrmWrapper[T]) Limit(limit int) *OrmWrapper[T] {
+	if limit > 0 {
+		o.builder.DbContext = o.builder.DbContext.Limit(limit)
+	}
+	return o
+}
+
+// Offset Offset
+func (o *OrmWrapper[T]) Offset(limit int) *OrmWrapper[T] {
+	if limit > 0 {
+		o.builder.DbContext = o.builder.DbContext.Offset(limit)
+	}
+	return o
+}
+
+// Debug 打印sql
+func (o *OrmWrapper[T]) Debug() *OrmWrapper[T] {
+	o.builder.DbContext = o.builder.DbContext.Debug()
+	return o
+}
+
 // Unscoped 和gorm一样，忽略软删除字段
 func (o *OrmWrapper[T]) Unscoped() *OrmWrapper[T] {
 	o.builder.isUnscoped = true
@@ -188,8 +202,8 @@ func (o *OrmWrapper[T]) Build() *gorm.DB {
 	return o.builder.Build()
 }
 
-// BuildChildrenTable 创建成一个子表，用于其他地方子查询
-func (o *OrmWrapper[T]) BuildChildrenTable() *gorm.DB {
+// BuildForQuery 创建成一个子表，用于其他地方子查询
+func (o *OrmWrapper[T]) BuildForQuery() *gorm.DB {
 	if o.Error != nil {
 		return nil
 	}
@@ -199,7 +213,7 @@ func (o *OrmWrapper[T]) BuildChildrenTable() *gorm.DB {
 
 // ToSql 转换成 Sql
 func (o *OrmWrapper[T]) ToSql() (string, error) {
-	var db = o.BuildChildrenTable()
+	var db = o.BuildForQuery()
 	if o.Error != nil {
 		return "", o.Error
 	}
@@ -208,6 +222,3 @@ func (o *OrmWrapper[T]) ToSql() (string, error) {
 		return tx.Find(&[]*T{})
 	}), nil
 }
-
-//todo https://gorm.io/zh_CN/docs/query.html
-//todo Joins 一个衍生表

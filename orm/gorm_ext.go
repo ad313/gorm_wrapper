@@ -3,6 +3,7 @@ package orm
 import (
 	"errors"
 	"fmt"
+	"gorm.io/gorm"
 	"reflect"
 
 	"gorm.io/gorm/schema"
@@ -34,7 +35,7 @@ func ResolveTableColumnName(column any, dbType string) string {
 }
 
 // mergeWhereString 组合 where 条件
-func mergeWhereString(column any, compareSymbols string, tableAlias string, f string, dbType string) (string, error) {
+func mergeWhereString(column any, compareSymbols string, tableAlias string, f string, dbType string, arg interface{}) (string, error) {
 	name, err := resolveColumnName(column, dbType)
 	if err != nil {
 		return "", err
@@ -54,6 +55,14 @@ func mergeWhereString(column any, compareSymbols string, tableAlias string, f st
 	case "IS NOT NULL":
 		valueExpress = ""
 		break
+	}
+
+	//判断是否是子查询
+	if arg != nil {
+		_, ok := arg.(*gorm.DB)
+		if ok {
+			valueExpress = "(?)"
+		}
 	}
 
 	var table = ""
