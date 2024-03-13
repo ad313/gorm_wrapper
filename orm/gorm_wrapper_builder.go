@@ -193,6 +193,11 @@ func (o *ormWrapperBuilder[T]) buildWhere() {
 				return
 			}
 
+			if strings.HasPrefix(sql, "(") && strings.HasSuffix(sql, ")") {
+				sql = strings.TrimPrefix(sql, "(")
+				sql = strings.TrimSuffix(sql, ")")
+			}
+
 			o.addWhere(sql, param)
 		}
 	}

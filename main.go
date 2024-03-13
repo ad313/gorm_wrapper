@@ -29,7 +29,7 @@ package main
 //func init() {
 //	db = NewDb(mysqlConn)
 //
-//	orm.Init(db, orm.MySql)
+//	orm.Init(db.Debug(), orm.MySql)
 //}
 //
 //type Table3 struct {
@@ -136,4 +136,34 @@ package main
 //	if err != nil {
 //		fmt.Println(err)
 //	}
+//
+//	//3、条件组合 and
+//	var cond = orm.NewAndConditionBuilder(
+//		&orm.Condition{Column: &table3.Name, CompareSymbols: orm.Eq, Arg: "a"},
+//		&orm.Condition{Column: &table3.Age, CompareSymbols: orm.Gt, Arg: 18})
+//	list, err = table3.GetDbContext(context.Background()).WhereCondition(cond).ToList()
+//	if err != nil {
+//		fmt.Println(err)
+//	}
+//	fmt.Println(list)
+//	//sql：SELECT * FROM `Table1` WHERE ((`name` = 'a' AND `age` > 18)) AND `deleted_at` = 0
+//
+//	//4、条件组合 or
+//	var cond2 = orm.NewOrConditionBuilder(
+//		&orm.Condition{Column: &table3.Name, CompareSymbols: orm.Eq, Arg: "a"},
+//		&orm.Condition{Column: &table3.Age, CompareSymbols: orm.Gt, Arg: 18})
+//	list, err = table3.GetDbContext(context.Background()).WhereCondition(cond2).ToList()
+//	if err != nil {
+//		fmt.Println(err)
+//	}
+//	fmt.Println(list)
+//	//sql：SELECT * FROM `Table1` WHERE ((`name` = 'a' OR `age` > 18)) AND `deleted_at` = 0
+//
+//	//5、条件与条件组合
+//	var cond3 = orm.NewAndConditionBuilder(cond, cond2)
+//	list, err = table3.GetDbContext(context.Background()).WhereCondition(cond3).ToList()
+//	if err != nil {
+//		fmt.Println(err)
+//	}
+//	fmt.Println(list)
 //}
