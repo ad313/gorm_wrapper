@@ -105,8 +105,12 @@ func (c *ConditionBuilder) BuildSql(dbType string, extend ...interface{}) (strin
 	//条件符号
 	var compareSymbols = chooseTrueValue(c.Or, " OR ", " AND ")
 
-	//todo 一个条件时可省略括号
-	return "(" + strings.Join(_sql, compareSymbols) + ")", _param, nil
+	//一个条件时可省略括号
+	if len(_sql) == 1 {
+		return _sql[0], _param, nil
+	} else {
+		return "(" + strings.Join(_sql, compareSymbols) + ")", _param, nil
+	}
 }
 
 func (c *ConditionBuilder) Error(error string) *ConditionBuilder {
