@@ -1,81 +1,89 @@
 package main
 
+import (
+	"context"
+	"github.com/ad313/gorm_wrapper/orm"
+	"gorm.io/gorm"
+	"gorm.io/plugin/soft_delete"
+)
+
+// import (
 //
-//import (
 //	"context"
 //	"fmt"
 //	"github.com/ad313/gorm_wrapper/orm"
 //	"gorm.io/driver/mysql"
 //	"gorm.io/gorm"
 //	"gorm.io/plugin/soft_delete"
-//)
 //
-//var db *gorm.DB
+// )
 //
-//// var mysqlConn = "root:123456@tcp(192.168.1.80:30680)/test?charset=utf8mb4&parseTime=True&loc=Local"
-//var mysqlConn = "root:Zxcv1234@#@tcp(192.168.0.120:3306)/test?charset=utf8mb4&parseTime=True&loc=Local"
+// var db *gorm.DB
 //
-//func NewDb(conn string) *gorm.DB {
-//	if len(conn) == 0 {
-//		panic("数据库连接字符未配置")
+// // var mysqlConn = "root:123456@tcp(192.168.1.80:30680)/test?charset=utf8mb4&parseTime=True&loc=Local"
+// var mysqlConn = "root:Zxcv1234@#@tcp(192.168.0.120:3306)/test?charset=utf8mb4&parseTime=True&loc=Local"
+//
+//	func NewDb(conn string) *gorm.DB {
+//		if len(conn) == 0 {
+//			panic("数据库连接字符未配置")
+//		}
+//
+//		db, err := gorm.Open(mysql.Open(conn), &gorm.Config{})
+//		if err != nil {
+//			panic("创建mysql 数据库失败")
+//		}
+//		return db
 //	}
 //
-//	db, err := gorm.Open(mysql.Open(conn), &gorm.Config{})
-//	if err != nil {
-//		panic("创建mysql 数据库失败")
+//	func init() {
+//		db = NewDb(mysqlConn)
+//
+//		db.AutoMigrate(&Table1{}, &Table2{}, &Table3{})
+//
+//		orm.Init(db.Debug(), orm.MySql)
 //	}
-//	return db
-//}
+type Table1 struct {
+	Id        string                `gorm:"column:id;type:varchar(36);primaryKey;not null"` //标识
+	Name      string                `gorm:"column:name;type:varchar(200)" json:"name"`
+	Age       int32                 `gorm:"column:age;type:int" json:"age"`
+	IsDeleted soft_delete.DeletedAt `gorm:"column:is_deleted;softDelete:flag"`
+}
+
+//	type Table2 struct {
+//		Id        string                `gorm:"column:id;type:varchar(36);primaryKey;not null"` //标识
+//		Name      string                `gorm:"column:name;type:varchar(200)" json:"name"`
+//		Age       int32                 `gorm:"column:age;type:int" json:"age"`
+//		DeletedAt soft_delete.DeletedAt `gorm:"column:deleted_at;softDelete:flag"`
+//	}
 //
-//func init() {
-//	db = NewDb(mysqlConn)
+//	type Table3 struct {
+//		Id        string                `gorm:"column:id;type:varchar(36);primaryKey;not null"` //标识
+//		Name      string                `gorm:"column:name;type:varchar(200)" json:"name"`
+//		Age       int32                 `gorm:"column:age;type:int" json:"age"`
+//		DeletedAt soft_delete.DeletedAt `gorm:"column:deleted_at;softDelete:flag"`
+//	}
 //
-//	db.AutoMigrate(&Table1{}, &Table2{}, &Table3{})
+//	func (t *Table1) TableName() string {
+//		return "Table1"
+//	}
 //
-//	orm.Init(db.Debug(), orm.MySql)
-//}
+//	func (t *Table2) TableName() string {
+//		return "Table2"
+//	}
 //
-//type Table1 struct {
-//	Id        string                `gorm:"column:id;type:varchar(36);primaryKey;not null"` //标识
-//	Name      string                `gorm:"column:name;type:varchar(200)" json:"name"`
-//	Age       int32                 `gorm:"column:age;type:int" json:"age"`
-//	DeletedAt soft_delete.DeletedAt `gorm:"column:deleted_at;softDelete:flag"`
-//}
+//	func (t *Table3) TableName() string {
+//		return "Table3"
+//	}
 //
-//type Table2 struct {
-//	Id        string                `gorm:"column:id;type:varchar(36);primaryKey;not null"` //标识
-//	Name      string                `gorm:"column:name;type:varchar(200)" json:"name"`
-//	Age       int32                 `gorm:"column:age;type:int" json:"age"`
-//	DeletedAt soft_delete.DeletedAt `gorm:"column:deleted_at;softDelete:flag"`
-//}
+// var table1 = orm.BuildOrmTable[Table3]().Table.T
+// var table2 = orm.BuildOrmTable[Table3]().Table.T
+// var table3 = orm.BuildOrmTable[Table3]().Table.T
 //
-//type Table3 struct {
-//	Id        string                `gorm:"column:id;type:varchar(36);primaryKey;not null"` //标识
-//	Name      string                `gorm:"column:name;type:varchar(200)" json:"name"`
-//	Age       int32                 `gorm:"column:age;type:int" json:"age"`
-//	DeletedAt soft_delete.DeletedAt `gorm:"column:deleted_at;softDelete:flag"`
-//}
-//
-//func (t *Table1) TableName() string {
-//	return "Table1"
-//}
-//
-//func (t *Table2) TableName() string {
-//	return "Table2"
-//}
-//
-//func (t *Table3) TableName() string {
-//	return "Table3"
-//}
-//
-//var table1 = orm.BuildOrmTable[Table3]().Table.T
-//var table2 = orm.BuildOrmTable[Table3]().Table.T
-//var table3 = orm.BuildOrmTable[Table3]().Table.T
-//
-//// GetDbContext 获取DbContext。当外部开启事务时，传入开启事务后的db
-//func (a *Table1) GetDbContext(ctx context.Context, db ...*gorm.DB) *orm.OrmWrapper[Table1] {
-//	return orm.BuildOrmWrapper[Table1](ctx, db...)
-//}
+// GetDbContext 获取DbContext。当外部开启事务时，传入开启事务后的db
+func (a *Table1) GetDbContext(ctx context.Context, db ...*gorm.DB) *orm.OrmWrapper[Table1] {
+	return orm.BuildOrmWrapper[Table1](ctx, db...)
+}
+
 //
 //func (a *Table2) GetDbContext(ctx context.Context, db ...*gorm.DB) *orm.OrmWrapper[Table2] {
 //	return orm.BuildOrmWrapper[Table2](ctx, db...)

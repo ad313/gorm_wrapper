@@ -3,20 +3,55 @@
 
 灵感来自于：https://github.com/acmestack/gorm-plus
 
+[//]: # (* [入门]&#40;a.md&#41;)
+
 支持特性：
 - 字段、表 强类型
 - 无限层级条件构建
 - 简单地连表
 - 子查询
 
+### 建表
+``` mysql
+CREATE TABLE `Table1`  (
+  `id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `age` int(0) NULL DEFAULT NULL,
+  `is_deleted` bigint(0) UNSIGNED NULL DEFAULT NULL,
+  PRIMARY KEY (`id`) USING BTREE
+);
+```
 ### 构建 grom 包装器
 ```golang
+//安装包
+go get github.com/ad313/gorm_wrapper
+
 //引入包
 import "github.com/ad313/gorm_wrapper/orm"
 
 //初始化包装器，需要传入 *gorm.DB 实例，并指定是何种数据库
 orm.Init(db实例, orm.MySql)
 ```
+### 构建实体
+``` golang
+type Table1 struct {
+	Id        string                `gorm:"column:id;type:varchar(36);primaryKey;not null"` //标识
+	Name      string                `gorm:"column:name;type:varchar(200)" json:"name"`
+	Age       int32                 `gorm:"column:age;type:int" json:"age"`
+	IsDeleted soft_delete.DeletedAt `gorm:"column:is_deleted;softDelete:flag"`
+}
+
+// GetDbContext 获取DbContext。当外部开启事务时，传入开启事务后的db
+func (a *Table1) GetDbContext(ctx context.Context, db ...*gorm.DB) *orm.OrmWrapper[Table1] {
+	return orm.BuildOrmWrapper[Table1](ctx, db...)
+}
+
+// Table1表对应的操作实体，每个表对应一个实例
+var table1 = orm.BuildOrmTable[Table1]().Table.T
+```
+
+
+
 ### where
 
 ```golang
