@@ -3,6 +3,7 @@ package orm
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/ad313/gorm_wrapper/orm/ref"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
@@ -28,10 +29,35 @@ var _db *gorm.DB = nil
 // 数据库类型
 var _dbType string = ""
 
-// Init 初始化塞入db
-func Init(db *gorm.DB, dbType string) {
+// Init 初始化塞入db，可以指定数据库类型，不指定时从db解析
+func Init(db *gorm.DB, dbType ...string) {
 	_db = db
-	_dbType = dbType
+	_dbType = FirstOrDefault(dbType)
+
+	if _dbType == "" {
+		dialect := db.Dialector.Name()
+		switch dialect {
+		case "mysql":
+			_dbType = MySql
+			break
+		case "postgres":
+			_dbType = Postgres
+			break
+		case "sqlite":
+			_dbType = Sqlite
+			break
+		case "sqlserver":
+			_dbType = Sqlserver
+			break
+		case "dm":
+			_dbType = Dm
+			break
+		default:
+			fmt.Printf("未知的数据库类型： %s", dialect)
+			_dbType = dialect
+			break
+		}
+	}
 }
 
 // BuildOrmWrapper 创建gorm包装器
@@ -67,7 +93,7 @@ func BuildOrmWrapper[T any](ctx context.Context, db ...*gorm.DB) *OrmWrapper[T] 
 
 // SetDb 外部传入db，适用于外部开事务的场景
 func (o *OrmWrapper[T]) SetDb(ctx context.Context, db ...*gorm.DB) *OrmWrapper[T] {
-	if len(db) > 0 {
+	if len(db) > 0 && db[0] != nil {
 		o.builder.DbContext = db[0].WithContext(ctx)
 		o.builder.isOuterDb = true
 	} else {

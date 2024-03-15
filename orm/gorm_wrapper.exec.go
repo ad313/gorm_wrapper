@@ -239,7 +239,7 @@ func (o *OrmWrapper[T]) UpdateOne(item *T, updateColumns ...interface{}) (int64,
 		isUpdateAll = true
 	}
 
-	o.Build()
+	o.BuildForQuery()
 
 	//创建语句过程中的错误
 	if o.Error != nil {
@@ -341,6 +341,27 @@ func (o *OrmWrapper[T]) Update(columnMap map[interface{}]interface{}) (int64, er
 	var result *gorm.DB
 	result = o.builder.DbContext.Updates(m)
 	return result.RowsAffected, result.Error
+}
+
+//todo 自定义更新
+
+// Insert 插入单条
+func (o *OrmWrapper[T]) Insert(item *T) error {
+	if item == nil {
+		o.Error = errors.New("item 不能为空")
+		return o.Error
+	}
+
+	return o.builder.DbContext.Create(item).Error
+}
+
+// Inserts 插入多条
+func (o *OrmWrapper[T]) Inserts(items []*T) error {
+	if len(items) == 0 {
+		return nil
+	}
+
+	return o.builder.DbContext.Model(new(T)).Create(items).Error
 }
 
 // DeleteById 通过id删除数据，可以传入id集合

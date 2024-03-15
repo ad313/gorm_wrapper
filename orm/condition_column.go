@@ -4,8 +4,8 @@ import (
 	"errors"
 )
 
-// TableCondition 表与表之间比较条件
-type TableCondition struct {
+// ColumnCondition 表与表之间比较条件
+type ColumnCondition struct {
 	InnerAlias     string //内部表表别名(exists)；左边表别名
 	InnerColumn    any    //内部表字段名(exists)；左边表字段名
 	OuterAlias     string //外部表表别名(exists)；右边表别名
@@ -20,7 +20,7 @@ type TableCondition struct {
 	error error //错误
 }
 
-func (c *TableCondition) BuildSql(dbType string, extend ...interface{}) (string, []interface{}, error) {
+func (c *ColumnCondition) BuildSql(dbType string, extend ...interface{}) (string, []interface{}, error) {
 	if !c.isBuild {
 		if dbType == "" {
 			c.error = errors.New("请指定数据库类型")
@@ -65,7 +65,7 @@ func (c *TableCondition) BuildSql(dbType string, extend ...interface{}) (string,
 	return c.sql, nil, c.error
 }
 
-func (c *TableCondition) clear() *TableCondition {
+func (c *ColumnCondition) clear() *ColumnCondition {
 	if c.isBuild {
 		c.isBuild = false
 		c.sql = ""

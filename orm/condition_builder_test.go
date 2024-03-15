@@ -7,7 +7,7 @@ import (
 
 func Test_gorm_condition_builder_error(t *testing.T) {
 	//字段为空 1
-	var cond = &TableCondition{
+	var cond = &ColumnCondition{
 		InnerAlias:     "",
 		InnerColumn:    nil,
 		OuterAlias:     "",
@@ -22,7 +22,7 @@ func Test_gorm_condition_builder_error(t *testing.T) {
 
 func Test_gorm_condition_builder(t *testing.T) {
 	//1
-	var cond = &TableCondition{
+	var cond = &ColumnCondition{
 		InnerAlias:     "a",
 		InnerColumn:    &condTable.Id,
 		OuterAlias:     "b",
@@ -41,7 +41,7 @@ func Test_gorm_condition_builder(t *testing.T) {
 	}
 
 	//2 and
-	var cond2 = &TableCondition{
+	var cond2 = &ColumnCondition{
 		InnerAlias:     "a",
 		InnerColumn:    &condTable.Age,
 		OuterAlias:     "b",
@@ -72,7 +72,7 @@ func Test_gorm_condition_builder(t *testing.T) {
 	}
 
 	//4 and
-	var cond_IsNull = &TableCondition{
+	var cond_IsNull = &ColumnCondition{
 		InnerAlias:     "a",
 		InnerColumn:    &condTable.Age,
 		OuterAlias:     "b",

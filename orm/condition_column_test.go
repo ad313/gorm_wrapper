@@ -7,7 +7,7 @@ import (
 
 func Test_Condition_table_error(t *testing.T) {
 	//字段为空 1
-	var cond = &TableCondition{
+	var cond = &ColumnCondition{
 		InnerAlias:     "",
 		InnerColumn:    nil,
 		OuterAlias:     "",
@@ -20,7 +20,7 @@ func Test_Condition_table_error(t *testing.T) {
 	}
 
 	//字段为空 2
-	cond = &TableCondition{
+	cond = &ColumnCondition{
 		InnerAlias:     "a",
 		InnerColumn:    &condTable.Id,
 		OuterAlias:     "",
@@ -33,7 +33,7 @@ func Test_Condition_table_error(t *testing.T) {
 	}
 
 	//字段为空 3
-	cond = &TableCondition{
+	cond = &ColumnCondition{
 		InnerAlias:     "a",
 		InnerColumn:    &condTable.Id,
 		OuterAlias:     "b",
@@ -46,7 +46,7 @@ func Test_Condition_table_error(t *testing.T) {
 	}
 
 	//符号为空
-	cond = &TableCondition{
+	cond = &ColumnCondition{
 		InnerAlias:     "a",
 		InnerColumn:    &condTable.Id,
 		OuterAlias:     "b",
@@ -62,7 +62,7 @@ func Test_Condition_table_error(t *testing.T) {
 
 func Test_Condition_table_Eq(t *testing.T) {
 	//1
-	var cond = &TableCondition{
+	var cond = &ColumnCondition{
 		InnerAlias:     "a",
 		InnerColumn:    &condTable.Id,
 		OuterAlias:     "b",
@@ -81,7 +81,7 @@ func Test_Condition_table_Eq(t *testing.T) {
 	}
 
 	//2
-	cond = &TableCondition{
+	cond = &ColumnCondition{
 		InnerAlias:     "a",
 		InnerColumn:    &condTable.Id,
 		OuterAlias:     "b",
@@ -100,7 +100,7 @@ func Test_Condition_table_Eq(t *testing.T) {
 	}
 
 	//3
-	cond = &TableCondition{
+	cond = &ColumnCondition{
 		InnerAlias:     "",
 		InnerColumn:    &condTable.Id,
 		OuterAlias:     "b",
@@ -121,7 +121,7 @@ func Test_Condition_table_Eq(t *testing.T) {
 
 func Test_Condition_table_IsNull(t *testing.T) {
 	//1
-	var cond = &TableCondition{
+	var cond = &ColumnCondition{
 		InnerAlias:     "a",
 		InnerColumn:    &condTable.Id,
 		OuterAlias:     "b",
@@ -140,7 +140,7 @@ func Test_Condition_table_IsNull(t *testing.T) {
 	}
 
 	//2
-	cond = &TableCondition{
+	cond = &ColumnCondition{
 		InnerAlias:     "a",
 		InnerColumn:    &condTable.Id,
 		OuterAlias:     "b",

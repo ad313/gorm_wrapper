@@ -32,7 +32,7 @@ func Test_condition_exists_error(t *testing.T) {
 
 func Test_condition_exists(t *testing.T) {
 	//1
-	var cond = &TableCondition{
+	var cond = &ColumnCondition{
 		InnerAlias:     "a",
 		InnerColumn:    &condTable.Id,
 		OuterAlias:     "b",
@@ -41,7 +41,7 @@ func Test_condition_exists(t *testing.T) {
 	}
 
 	//2 and
-	var cond2 = &TableCondition{
+	var cond2 = &ColumnCondition{
 		InnerAlias:     "a",
 		InnerColumn:    &condTable.Age,
 		OuterAlias:     "b",
@@ -50,7 +50,7 @@ func Test_condition_exists(t *testing.T) {
 	}
 
 	//4 and
-	var cond_IsNull = &TableCondition{
+	var cond_IsNull = &ColumnCondition{
 		InnerAlias:     "a",
 		InnerColumn:    &condTable.Age,
 		OuterAlias:     "b",

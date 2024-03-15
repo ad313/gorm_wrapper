@@ -60,5 +60,5 @@ model, err := table1.GetDbContext(context.Background()).WhereByColumn(&table1.Na
 if err != nil {
 	fmt.Println(err)
 }
-//sql：SELECT * FROM `Table1` WHERE `name` = 'a' AND `deleted_at` = 0 LIMIT 1
+//sql：SELECT * FROM `Table1` WHERE `name` = 'a' AND `is_deleted` = 0 LIMIT 1
 ```

@@ -9,7 +9,7 @@ type Condition struct {
 	TableAlias     string      //表别名
 	Column         any         //字段名
 	CompareSymbols string      //比较符号
-	Arg            interface{} //sql 参数
+	Arg            interface{} //sql 参数，也可以是子表 *gorm.DB
 	Func           string      //数据库函数，max、min 等，给当前字段套上函数
 
 	isBuild bool   //是否已经build
