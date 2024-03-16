@@ -40,7 +40,7 @@ func Test_condition_exists(t *testing.T) {
 		CompareSymbols: NotEq,
 	}
 
-	//2 and
+	//2
 	var cond2 = &ColumnCondition{
 		InnerAlias:     "a",
 		InnerColumn:    &condTable.Age,

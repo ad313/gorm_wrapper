@@ -43,6 +43,7 @@ type ormWrapperBuilder[T interface{}] struct {
 	HavingCondition []OrmCondition //having条件
 	joinModels      []*joinModel   //leftJoin 集合
 	selectColumns   []string       //select 字段集合
+	selectModes     []*selectMode  //select 字段模型集合
 	groupByColumns  []string       //group by 字段集合
 	orderByColumns  []string       //order by 字段集合
 

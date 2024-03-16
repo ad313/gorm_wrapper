@@ -145,7 +145,7 @@ func Test_Condition_table_IsNull(t *testing.T) {
 		InnerColumn:    &condTable.Id,
 		OuterAlias:     "b",
 		OuterColumn:    &condTable.Name,
-		CompareSymbols: NotNull,
+		CompareSymbols: IsNotNull,
 	}
 	sql, param, err = cond.clear().BuildSql(dbType)
 	if err != nil {

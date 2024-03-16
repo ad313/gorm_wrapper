@@ -75,7 +75,7 @@ func Test_Condition_error(t *testing.T) {
 	cond = &Condition{
 		TableAlias:     "a",
 		Column:         &condTable.Id,
-		CompareSymbols: NotNull,
+		CompareSymbols: IsNotNull,
 		Arg:            nil,
 	}
 	_, _, err = cond.BuildSql(dbType)
@@ -276,7 +276,7 @@ func Test_Condition_IsNull(t *testing.T) {
 	cond = &Condition{
 		TableAlias:     "a",
 		Column:         &condTable.Id,
-		CompareSymbols: NotNull,
+		CompareSymbols: IsNotNull,
 		Arg:            []string{"123", "456"},
 	}
 	sql, param, err = cond.clear().BuildSql(dbType)

@@ -24,7 +24,7 @@ const (
 	StartWith = "STARTWITH"
 	EndWith   = "ENDWITH"
 	IsNull    = "IS NULL"
-	NotNull   = "IS NOT NULL"
+	IsNotNull = "IS NOT NULL"
 )
 
 // 连表

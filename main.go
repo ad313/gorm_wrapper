@@ -12,9 +12,9 @@ import (
 
 var db *gorm.DB
 
-var mysqlConn = "root:123456@tcp(192.168.1.80:30680)/test?charset=utf8mb4&parseTime=True&loc=Local"
+//var mysqlConn = "root:123456@tcp(192.168.1.80:30680)/test?charset=utf8mb4&parseTime=True&loc=Local"
 
-//var mysqlConn = "root:Zxcv1234@#@tcp(192.168.0.120:3306)/test?charset=utf8mb4&parseTime=True&loc=Local"
+var mysqlConn = "root:Zxcv1234@#@tcp(192.168.0.120:3306)/test?charset=utf8mb4&parseTime=True&loc=Local"
 
 func NewDb(conn string) *gorm.DB {
 	if len(conn) == 0 {

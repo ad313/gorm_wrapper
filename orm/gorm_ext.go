@@ -59,8 +59,7 @@ func mergeWhereString(column any, compareSymbols string, tableAlias string, f st
 
 	//判断是否是子查询
 	if arg != nil {
-		_, ok := arg.(*gorm.DB)
-		if ok {
+		if isDb(arg) {
 			valueExpress = "(?)"
 		}
 	}
@@ -171,25 +170,25 @@ func formatSqlName(alias string, dbType string) string {
 	return getSqlSm(dbType) + alias + getSqlSm(dbType)
 }
 
-// 处理数据库表名 加上别名
-func mergeTableWithAlias(table string, alias string, dbType string) string {
-	if table == "" {
-		return table
-	}
+//// 处理数据库表名 加上别名
+//func mergeTableWithAlias(table string, alias string, dbType string) string {
+//	if table == "" {
+//		return table
+//	}
+//
+//	table = getSqlSm(dbType) + table + getSqlSm(dbType)
+//
+//	if alias != "" {
+//		table += " as " + alias
+//	}
+//
+//	return table
+//}
 
-	table = getSqlSm(dbType) + table + getSqlSm(dbType)
-
-	if alias != "" {
-		table += " as " + alias
-	}
-
-	return table
-}
-
-// 处理数据库表名 加上别名
-func mergeTableWithAliasByValue(table schema.Tabler, alias string, dbType string) string {
-	return mergeTableWithAlias(table.TableName(), alias, dbType)
-}
+//// 处理数据库表名 加上别名
+//func mergeTableWithAliasByValue(table schema.Tabler, alias string, dbType string) string {
+//	return mergeTableWithAlias(table.TableName(), alias, dbType)
+//}
 
 // 获取软删除字段
 func getTableSoftDeleteColumnSql(table schema.Tabler, tableAlias string, dbType string) (string, error) {
@@ -237,4 +236,10 @@ func FirstOrDefault[T interface{}](slice []T) T {
 		return slice[0]
 	}
 	return *new(T)
+}
+
+// 判断是否是 *gorm.DB
+func isDb(arg interface{}) bool {
+	_, ok := arg.(*gorm.DB)
+	return ok
 }

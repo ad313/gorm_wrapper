@@ -21,7 +21,7 @@ CREATE TABLE `Table1`  (
   PRIMARY KEY (`id`) USING BTREE
 );
 ```
-### 构建 grom 包装器
+### 构建 gorm_wrapper
 ```golang
 //安装包
 go get github.com/ad313/gorm_wrapper
@@ -29,8 +29,8 @@ go get github.com/ad313/gorm_wrapper
 //引入包
 import "github.com/ad313/gorm_wrapper/orm"
 
-//初始化包装器，需要传入 *gorm.DB 实例，并指定是何种数据库
-orm.Init(db实例, orm.MySql)
+//初始化包装器，需要传入 *gorm.DB 实例
+orm.Init(db实例)
 ```
 ### 构建实体
 ``` golang
