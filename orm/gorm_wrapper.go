@@ -9,11 +9,6 @@ import (
 	"gorm.io/gorm/schema"
 )
 
-//type OrmWrapperInterface[T interface{}] interface {
-//	//Init(db *gorm.DB, dbType string)
-//	Where(query interface{}, args ...interface{}) OrmWrapperInterface[T]
-//}
-
 // OrmWrapper gorm包装器
 type OrmWrapper[T any] struct {
 	Error error //过程中产生的错误
@@ -69,10 +64,10 @@ func BuildOrmWrapper[T any](ctx context.Context, db ...*gorm.DB) *OrmWrapper[T] 
 	wrapper.tableInfo = ormTableResult.Table
 	wrapper.Error = ormTableResult.Error
 	wrapper.builder = &ormWrapperBuilder[T]{
-		wrapper:        wrapper,
-		where:          make([][]any, 0),
-		joinModels:     make([]*joinModel, 0),
-		selectColumns:  make([]string, 0),
+		wrapper:    wrapper,
+		where:      make([][]any, 0),
+		joinModels: make([]*joinModel, 0),
+		//selectColumns:  make([]string, 0),
 		groupByColumns: make([]string, 0),
 		orderByColumns: make([]string, 0)}
 
@@ -246,5 +241,17 @@ func (o *OrmWrapper[T]) ToSql() (string, error) {
 
 	return db.ToSQL(func(tx *gorm.DB) *gorm.DB {
 		return tx.Find(&[]*T{})
+	}), nil
+}
+
+// ToFirstSql 转换成 Sql
+func (o *OrmWrapper[T]) ToFirstSql() (string, error) {
+	var db = o.BuildForQuery()
+	if o.Error != nil {
+		return "", o.Error
+	}
+
+	return db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+		return tx.First(new(T))
 	}), nil
 }

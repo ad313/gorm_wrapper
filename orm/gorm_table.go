@@ -89,6 +89,14 @@ func GetTableColumn(column any) string {
 	return ""
 }
 
+func GetString(column any) string {
+	if str, ok := column.(string); ok {
+		return str
+	}
+
+	return ""
+}
+
 // GetTableSchema 获取表元数据
 func GetTableSchema(table schema.Tabler) *TableSchema {
 	modelType := ref.GetPathByValue(table)

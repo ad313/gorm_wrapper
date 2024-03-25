@@ -218,6 +218,14 @@ func mergeTableColumnWithFunc(column interface{}, table string, f string, dbType
 	return chooseTrueValue(table != "", mergeNameAndFunc(formatSqlName(table, dbType)+"."+name, f), mergeNameAndFunc(name, f)), nil
 }
 
+func mergeTableColumnWithFunc2(columnName string, table string, f string, dbType string) (string, error) {
+	if columnName == "" {
+		return "", errors.New("column 不能为空")
+	}
+
+	return chooseTrueValue(table != "", mergeNameAndFunc(formatSqlName(table, dbType)+"."+columnName, f), mergeNameAndFunc(columnName, f)), nil
+}
+
 // 合并字段和数据库函数
 func mergeNameAndFunc(name, f string) string {
 	return chooseTrueValue(f == "", name, f+"("+name+")")
@@ -240,6 +248,12 @@ func FirstOrDefault[T interface{}](slice []T) T {
 
 // 判断是否是 *gorm.DB
 func isDb(arg interface{}) bool {
-	_, ok := arg.(*gorm.DB)
+	_, ok := isDbValue(arg)
 	return ok
+}
+
+// 判断是否是 *gorm.DB
+func isDbValue(arg interface{}) (*gorm.DB, bool) {
+	db, ok := arg.(*gorm.DB)
+	return db, ok
 }

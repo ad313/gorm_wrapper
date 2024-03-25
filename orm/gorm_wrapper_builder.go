@@ -174,9 +174,10 @@ func (o *ormWrapperBuilder[T]) buildModel() {
 
 	//衍生表
 	if o.childTable != nil {
-		o.DbContext = o.DbContext.Unscoped().Table("(?) as "+formatSqlName(o.TableAlias, _dbType), o.childTable)
+		o.DbContext = o.DbContext.Unscoped().Table("(?) as "+o.TableAlias, o.childTable)
 	} else {
-		o.DbContext = o.DbContext.Unscoped().Table(formatSqlName(o.TableName, _dbType) + " as " + formatSqlName(o.TableAlias, _dbType))
+		//这里的 TableAlias 不能包装前后缀，否则无法识别
+		o.DbContext = o.DbContext.Unscoped().Table(formatSqlName(o.TableName, _dbType) + " as " + o.TableAlias)
 		addSoftDelCondition(o, o.wrapper.table, o.TableAlias)
 	}
 }
@@ -247,9 +248,51 @@ func (o *ormWrapperBuilder[T]) buildJoin() {
 }
 
 func (o *ormWrapperBuilder[T]) buildSelect() {
-	if o.selectColumns != nil && len(o.selectColumns) > 0 {
-		o.DbContext = o.DbContext.Select(o.selectColumns)
+
+	for _, mode := range o.selectModes {
+
+		//todo 子查询
+		if db, ok := isDbValue(mode.Column); ok {
+			if mode.ColumnAlias == "" {
+				o.wrapper.Error = errors.New("当子查询作为选择字段时，必须给字段取别名")
+				return
+			}
+
+			var sql = db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+				return tx.First(new(T))
+			})
+			if sql == "" {
+				o.wrapper.Error = errors.New("select 子查询不正确")
+				return
+			}
+
+			o.selectColumns = append(o.selectColumns, fmt.Sprintf("(%v) as %v", sql, formatSqlName(mode.ColumnAlias, _dbType)))
+			//o.DbContext = o.DbContext.Select("(?) as ?", mode.Column, formatSqlName(mode.ColumnAlias, _dbType))
+			continue
+		}
+
+		//字段
+		var name = GetTableColumn(mode.Column)
+		if name != "" {
+			name = formatSqlName(name, _dbType)
+		} else {
+			name = GetString(mode.Column)
+		}
+
+		if name == "" {
+			o.wrapper.Error = errors.New("选择字段不能为空")
+			return
+		}
+
+		sql, err := mergeTableColumnWithFunc2(name, mode.TableAlias, mode.Func, _dbType)
+		if err != nil {
+			o.wrapper.Error = err
+			return
+		}
+
+		o.selectColumns = append(o.selectColumns, sql)
 	}
+	o.DbContext = o.DbContext.Select(o.selectColumns)
 }
 
 func (o *ormWrapperBuilder[T]) buildOrderBy() {

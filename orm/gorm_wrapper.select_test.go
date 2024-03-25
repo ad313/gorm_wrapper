@@ -19,6 +19,11 @@ func Test_Select(t *testing.T) {
 		t.Errorf("Test_Select faild")
 	}
 
+	orm.Select(_db)
+	if orm.Error == nil {
+		t.Errorf("Test_Select faild")
+	}
+
 	//SelectTable
 	orm = getOrmWrapper[Table1]()
 	orm.SelectTable("a", "name")
