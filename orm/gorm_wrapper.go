@@ -244,8 +244,8 @@ func (o *OrmWrapper[T]) ToSql() (string, error) {
 	}), nil
 }
 
-// ToFirstSql 转换成 Sql
-func (o *OrmWrapper[T]) ToFirstSql() (string, error) {
+// ToFirstOrDefaultSql 转换成 Sql
+func (o *OrmWrapper[T]) ToFirstOrDefaultSql() (string, error) {
 	var db = o.BuildForQuery()
 	if o.Error != nil {
 		return "", o.Error
