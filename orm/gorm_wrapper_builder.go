@@ -174,10 +174,10 @@ func (o *ormWrapperBuilder[T]) buildModel() {
 
 	//衍生表
 	if o.childTable != nil {
-		o.DbContext = o.DbContext.Unscoped().Table("(?) as "+o.TableAlias, o.childTable)
+		o.DbContext = o.DbContext.Unscoped().Table("(?) as "+formatTableAlias(o.TableAlias), o.childTable)
 	} else {
-		//这里的 TableAlias 不能包装前后缀，否则无法识别
-		o.DbContext = o.DbContext.Unscoped().Table(formatSqlName(o.TableName, _dbType) + " as " + o.TableAlias)
+		//这里的 TableAlias 不能包装前后缀，否则无法识别-- 突然又好了
+		o.DbContext = o.DbContext.Unscoped().Table(formatSqlName(o.TableName, _dbType) + " as " + formatTableAlias(o.TableAlias))
 		addSoftDelCondition(o, o.wrapper.table, o.TableAlias)
 	}
 }
@@ -224,7 +224,7 @@ func (o *ormWrapperBuilder[T]) buildJoin() {
 			if join.Db != nil {
 				var sql = fmt.Sprintf("%v (?) as %v on %v = %v%v",
 					join.joinKey,
-					formatSqlName(join.Alias, _dbType),
+					formatTableAlias(join.Alias),
 					join.Left,
 					join.Right,
 					chooseTrueValue(o.isUnscoped, "", join.ext))
@@ -235,15 +235,12 @@ func (o *ormWrapperBuilder[T]) buildJoin() {
 					Joins(fmt.Sprintf("%v %v as %v on %v = %v%v",
 						join.joinKey,
 						formatSqlName(join.tableName, _dbType),
-						formatSqlName(join.Alias, _dbType),
+						formatTableAlias(join.Alias),
 						join.Left,
 						join.Right,
 						chooseTrueValue(o.isUnscoped, "", join.ext)))
 			}
-
 		}
-
-		o.DbContext = o.DbContext.Distinct()
 	}
 }
 
@@ -288,6 +285,10 @@ func (o *ormWrapperBuilder[T]) buildSelect() {
 		if err != nil {
 			o.wrapper.Error = err
 			return
+		}
+
+		if mode.ColumnAlias != "" {
+			sql += " as " + formatSqlName(mode.ColumnAlias, _dbType)
 		}
 
 		o.selectColumns = append(o.selectColumns, sql)
@@ -342,4 +343,9 @@ func (o *ormWrapperBuilder[T]) BuildForQuery() *gorm.DB {
 	o.buildModel()
 	o.Build()
 	return o.DbContext
+}
+
+func formatTableAlias(alias string) string {
+	//return formatSqlName(alias, _dbType)
+	return alias
 }

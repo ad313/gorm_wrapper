@@ -100,7 +100,7 @@ func (o *OrmWrapper[T]) FirstOrDefault(scan ...func(db *gorm.DB) error) (*T, err
 	}
 
 	var err error
-	var result = new(T)
+	var result *T
 	if len(scan) > 0 {
 		if scan[0] == nil {
 			return nil, errors.New("scan 函数不能为空")
@@ -108,7 +108,7 @@ func (o *OrmWrapper[T]) FirstOrDefault(scan ...func(db *gorm.DB) error) (*T, err
 		err = scan[0](o.builder.DbContext)
 	} else {
 		//First 会自动添加主键排序
-		err = o.builder.DbContext.Take(result).Error
+		err = o.builder.DbContext.Limit(1).Take(&result).Error
 	}
 
 	if err != nil {

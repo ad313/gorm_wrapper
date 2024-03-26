@@ -201,6 +201,12 @@ func (o *OrmWrapper[T]) Offset(limit int) *OrmWrapper[T] {
 	return o
 }
 
+// Distinct 去重
+func (o *OrmWrapper[T]) Distinct() *OrmWrapper[T] {
+	o.builder.DbContext = o.builder.DbContext.Distinct()
+	return o
+}
+
 // Debug 打印sql
 func (o *OrmWrapper[T]) Debug() *OrmWrapper[T] {
 	o.builder.DbContext = o.builder.DbContext.Debug()
