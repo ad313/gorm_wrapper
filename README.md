@@ -78,42 +78,26 @@ var table1 = orm.BuildOrmTable[Table1]().Table.T
 ```golang
 //1、通过字段查询
 model, err := table1.GetDbContext(context.Background()).	
-	
-	//强类型字段
-	Where(&table1.Name, orm.Eq, "a").	
-	FirstOrDefault()
-if err != nil {
-    fmt.Println(err)
-}
-fmt.Println(model)
+    //强类型字段
+    Where(&table1.Name, orm.Eq, "a").	
+    FirstOrDefault()
 //Sql：SELECT * FROM `Table1` WHERE `name` = 'a' AND `is_deleted` = 0 LIMIT 1 //默认会加上软删除
 
 //2、表别名
-model, err = table1.GetDbContext(context.Background()).
-	
-	//表别名
+model, err = table1.GetDbContext(context.Background()).	
+    //表别名
     SetTable("t").
     Where(&table1.Name, orm.Eq, "a", "t").
     FirstOrDefault()
-if err != nil {
-    panic(err)
-}
-fmt.Println(model)
 //Sql：SELECT * FROM `Table1` as t WHERE `t`.`name` = 'a' AND `t`.`is_deleted` = 0 LIMIT 1
 
 //3、字符串字段
 model, err = table1.GetDbContext(context.Background()).
-    SetTable("t").
-	
-	//字符串字段
+    SetTable("t").	
+    //字符串字段
     Where("name", orm.Eq, "a", "t").
     FirstOrDefault()
-if err != nil {
-    panic(err)
-}
-fmt.Println(model)
 //Sql：SELECT * FROM `Table1` as t WHERE `t`.`name` = 'a' AND `t`.`is_deleted` = 0 LIMIT 1
-
 ```
 
 ### 2、.WhereCondition 传入条件模型
