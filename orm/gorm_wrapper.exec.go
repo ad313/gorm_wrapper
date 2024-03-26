@@ -125,13 +125,13 @@ func (o *OrmWrapper[T]) FirstOrDefault(scan ...func(db *gorm.DB) error) (*T, err
 // ToList 返回列表，可以传入自定义scan，自定义接收数据
 func (o *OrmWrapper[T]) ToList(scan ...func(db *gorm.DB) error) ([]*T, error) {
 
+	//Build sql
+	o.BuildForQuery()
+
 	//创建语句过程中的错误
 	if o.Error != nil {
 		return nil, o.Error
 	}
-
-	//Build sql
-	o.BuildForQuery()
 
 	if len(scan) > 0 {
 		if scan[0] == nil {
