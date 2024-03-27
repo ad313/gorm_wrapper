@@ -9,6 +9,7 @@ package main
 //	"gorm.io/driver/mysql"
 //	"gorm.io/gorm"
 //	"gorm.io/plugin/soft_delete"
+//	"strconv"
 //)
 //
 //var db *gorm.DB
@@ -27,7 +28,7 @@ package main
 //		panic("创建mysql 数据库失败")
 //	}
 //
-//	return db
+//	return db.Debug()
 //}
 //
 //func init() {
@@ -89,22 +90,25 @@ package main
 //}
 //
 //func main() {
-//	//list, err := Create(10)
-//	//if err != nil {
-//	//	panic(err)
-//	//}
-//	//
-//	//if len(list) != 10 {
-//	//	panic("err")
-//	//}
-//	//
-//	//Update(list)
+//
+//	table1.GetDbContext(context.Background()).WhereOriginal("1=1").Unscoped().Delete()
+//
+//	list, err := Create(10)
+//	if err != nil {
+//		panic(err)
+//	}
+//
+//	if len(list) != 10 {
+//		panic("err")
+//	}
+//
+//	Update(list)
 //
 //	//Select()
 //
 //	//Where()
 //
-//	Join()
+//	//Join()
 //
 //}
 //
@@ -270,12 +274,12 @@ package main
 //	var m = list[0]
 //	m.Name = "111"
 //	m.Age = 22
-//	////原始更新
-//	//var s = db.WithContext(context.Background()).Select("name", "age").Model(m).Updates(m)
-//	//var err = s.Error
-//	//if err != nil {
-//	//	fmt.Println(err)
-//	//}
+//	//原始更新
+//	var s = db.WithContext(context.Background()).Select("name", "age").Model(m).Updates(m)
+//	var err = s.Error
+//	if err != nil {
+//		fmt.Println(err)
+//	}
 //
 //	//包装更新
 //	m.Name = ""
@@ -297,17 +301,24 @@ package main
 //	fmt.Println(c)
 //	//sql：UPDATE `Table1` SET `name`='',`age`=33 WHERE `Table1`.`is_deleted` = 0 AND `id` = 'e20c46fe-edc9-43e7-b633-834951809b0c'
 //
-//	////包装更新 列表
-//	//for i, t := range list {
-//	//	t.Name = "name1" + strconv.Itoa(i)
-//	//	t.Age = 1001 + int32(i)
-//	//}
-//	//
-//	//c, err = table1.GetDbContext(context.Background()).UpdateList(list, &table3.Name, &table3.Age)
-//	//if err != nil {
-//	//	fmt.Println(err)
-//	//}
-//	//fmt.Println(c)
+//	//包装更新 列表
+//	for i, t := range list {
+//		t.Name = "name1" + strconv.Itoa(i)
+//		t.Age = 1001 + int32(i)
+//	}
+//
+//	c, err = table1.GetDbContext(context.Background()).UpdateList(list, &table3.Name, &table3.Age)
+//	if err != nil {
+//		fmt.Println(err)
+//	}
+//	fmt.Println(c)
+//
+//	//外部开启事务更新
+//	db.Transaction(func(tx *gorm.DB) error {
+//		table1.GetDbContext(context.Background(), tx).UpdateList(list, &table3.Name, &table3.Age)
+//		return nil
+//	})
+//
 //	//
 //	////字典更新
 //	//var columnMap = map[interface{}]interface{}{&table3.Name: "bbb", &table3.Age: gorm.Expr("age+10")}

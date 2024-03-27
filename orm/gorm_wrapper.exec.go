@@ -22,7 +22,7 @@ func (o *OrmWrapper[T]) Count() (int64, error) {
 
 	//left join 加上 distinct
 	if len(o.builder.joinModels) > 0 {
-		err = _db.Table("(?) as leftJoinTableWrapper", o.builder.DbContext).Count(&total).Error
+		err = o.GetNewDb().Table("(?) as leftJoinTableWrapper", o.builder.DbContext).Count(&total).Error
 	} else {
 		err = o.builder.DbContext.Count(&total).Error
 	}
@@ -54,6 +54,9 @@ func (o *OrmWrapper[T]) GetById(id interface{}) (*T, error) {
 		return nil, err
 	}
 
+	//执行完毕清理痕迹
+	defer o.clearBuilder()
+
 	var result = new(T)
 	err = o.GetNewDb().Model(new(T)).Where(sql, id).Take(&result).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -84,6 +87,9 @@ func (o *OrmWrapper[T]) GetByIds(idList []interface{}) ([]*T, error) {
 		return nil, err
 	}
 
+	//执行完毕清理痕迹
+	defer o.clearBuilder()
+
 	var result = make([]*T, 0)
 	return result, o.GetNewDb().Model(new(T)).Where(sql, idList).Scan(&result).Error
 }
@@ -98,6 +104,9 @@ func (o *OrmWrapper[T]) FirstOrDefault(scan ...func(db *gorm.DB) error) (*T, err
 	if o.Error != nil {
 		return nil, o.Error
 	}
+
+	//执行完毕清理痕迹
+	defer o.clearBuilder()
 
 	var err error
 	var result *T
@@ -140,6 +149,9 @@ func (o *OrmWrapper[T]) ToList(scan ...func(db *gorm.DB) error) ([]*T, error) {
 		return nil, scan[0](o.builder.DbContext)
 	}
 
+	//执行完毕清理痕迹
+	defer o.clearBuilder()
+
 	var list = make([]*T, 0)
 	err := o.builder.DbContext.Scan(&list).Error
 	if err != nil {
@@ -163,6 +175,9 @@ func (o *OrmWrapper[T]) ToPagerList(pager *Pager, scan ...func(db *gorm.DB) erro
 	if pager == nil {
 		return nil, errors.New("传入分页数据不能为空")
 	}
+
+	//执行完毕清理痕迹
+	defer o.clearBuilder()
 
 	//包含空格 asc desc
 	if strings.Contains(pager.Order, " ") {
@@ -190,7 +205,7 @@ func (o *OrmWrapper[T]) ToPagerList(pager *Pager, scan ...func(db *gorm.DB) erro
 
 	//left join 加上 distinct
 	if len(o.builder.joinModels) > 0 {
-		err = _db.Table("(?) as leftJoinTableWrapper", o.builder.DbContext).Count(&total).Error
+		err = o.builder._DbContext.Table("(?) as leftJoinTableWrapper", o.builder.DbContext).Count(&total).Error
 	} else {
 		err = o.builder.DbContext.Count(&total).Error
 	}
@@ -246,27 +261,34 @@ func (o *OrmWrapper[T]) UpdateOne(item *T, updateColumns ...interface{}) (int64,
 		return 0, o.Error
 	}
 
-	var result *gorm.DB
+	//执行完毕清理痕迹
+	defer o.clearBuilder()
+	var db = o.builder.DbContext.Model(item)
+
 	if isUpdateAll {
-		result = o.builder.DbContext.Save(item)
-		return result.RowsAffected, result.Error
+		o.builder.DbContext = db.Save(item)
 	} else {
-		result = o.builder.DbContext.Updates(item)
-		return result.RowsAffected, result.Error
+		o.builder.DbContext = db.Updates(item)
 	}
+	return o.builder.DbContext.RowsAffected, o.builder.DbContext.Error
 }
 
-// UpdateList 更新多个，主键作为条件；传了字段只更新出入字段，否则更新全部
+// UpdateList 更新多个，主键作为条件；传了字段只更新传入字段，否则更新全部
 func (o *OrmWrapper[T]) UpdateList(items []*T, updateColumns ...interface{}) (int64, error) {
 	if len(items) == 0 {
 		return 0, nil
 	}
+
+	//执行完毕清理痕迹
+	defer o.clearBuilder()
 
 	var total int64 = 0
 
 	//外部开启了事务
 	if o.builder.isOuterDb {
 		for _, item := range items {
+			//重新设置db
+			o.SetDb(o.builder.ctx, o.builder._DbContext)
 			c, err := o.UpdateOne(item, updateColumns...)
 			if err != nil {
 				return 0, err
@@ -282,12 +304,9 @@ func (o *OrmWrapper[T]) UpdateList(items []*T, updateColumns ...interface{}) (in
 	var db = o.builder.DbContext
 
 	err := db.Transaction(func(tx *gorm.DB) error {
-		for i, item := range items {
+		for _, item := range items {
 			//重新设置db
-			if i == 0 {
-				o.SetDb(o.builder.ctx, tx)
-			}
-
+			o.SetDb(o.builder.ctx, tx)
 			c, err := o.UpdateOne(item, updateColumns...)
 			if err != nil {
 				return err
@@ -326,6 +345,9 @@ func (o *OrmWrapper[T]) Update(columnMap map[interface{}]interface{}) (int64, er
 	if o.Error != nil {
 		return 0, o.Error
 	}
+
+	//执行完毕清理痕迹
+	defer o.clearBuilder()
 
 	var m = make(map[string]interface{})
 	for key, value := range columnMap {
@@ -383,4 +405,20 @@ func (o *OrmWrapper[T]) Delete() (int64, error) {
 
 	var exc = o.Build().Delete(new(T))
 	return exc.RowsAffected, exc.Error
+}
+
+// 清理操作痕迹
+func (o *OrmWrapper[T]) clearBuilder() {
+	o.builder.where = nil
+	o.builder.WhereCondition = nil
+	o.builder.HavingCondition = nil
+	o.builder.joinModels = nil
+	o.builder.selectColumns = nil
+	o.builder.selectModes = nil
+	o.builder.groupByColumns = nil
+	o.builder.orderByColumns = nil
+
+	//重新设置db
+	o.SetDb(o.builder.ctx, o.builder._DbContext)
+	o.Error = nil
 }
